@@ -1,0 +1,795 @@
+<title>Amateur Radio Flashcards</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one 720px column like a rig's front panel: name plate, accuracy meter strip, then the flashcard. */
+:root {
+  --bg: #e9edf1;
+  --surface: #ffffff;
+  --ink: #15212c;
+  --muted: #566573;
+  --line: #cfd7df;
+  --accent: #d0820f;
+  --accent-ink: #8a5200;
+  --seg-off: #d9e0e7;
+  --good: #17703f;
+  --good-bg: #e2f3e9;
+  --bad: #b3261e;
+  --bad-bg: #fbe8e6;
+  --shadow: 0 1px 2px rgba(21, 33, 44, .06), 0 8px 24px rgba(21, 33, 44, .07);
+
+  --font-display: "Barlow Semi Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Atkinson Hyperlegible", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --step--1: .8125rem;
+  --step-0: 1rem;
+  --step-1: 1.1875rem;
+  --step-2: 1.4375rem;
+  --step-3: 2rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d151d;
+    --surface: #152029;
+    --ink: #e5ecf2;
+    --muted: #94a4b3;
+    --line: #273644;
+    --accent: #f2a43a;
+    --accent-ink: #f6bb66;
+    --seg-off: #22303d;
+    --good: #5acb8c;
+    --good-bg: #123022;
+    --bad: #ff8a7a;
+    --bad-bg: #3b1915;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d151d;
+  --surface: #152029;
+  --ink: #e5ecf2;
+  --muted: #94a4b3;
+  --line: #273644;
+  --accent: #f2a43a;
+  --accent-ink: #f6bb66;
+  --seg-off: #22303d;
+  --good: #5acb8c;
+  --good-bg: #123022;
+  --bad: #ff8a7a;
+  --bad-bg: #3b1915;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
+  color-scheme: dark;
+}
+
+[hidden] { display: none !important; }
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 40px;
+  display: grid;
+  gap: 20px;
+}
+
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* Name plate */
+.plate { display: flex; align-items: baseline; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
+.plate h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--step-3);
+  line-height: 1.05;
+  letter-spacing: .01em;
+  text-wrap: balance;
+}
+.plate p { margin: 0; color: var(--muted); font-size: var(--step--1); }
+
+.eyebrow {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--muted);
+}
+
+/* Accuracy meter strip */
+.meter-strip { display: grid; gap: 10px; border-block: 1px solid var(--line); padding-block: 14px; }
+.meter-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.meter-read { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.meter-pct {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: var(--step-3);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-ink);
+}
+.meter-count { color: var(--muted); font-variant-numeric: tabular-nums; }
+.segments { display: grid; grid-template-columns: repeat(20, 1fr); gap: 3px; height: 14px; }
+.segments span { border-radius: 2px; background: var(--seg-off); }
+.segments span.on { background: var(--accent); }
+.meter-banks { display: flex; flex-wrap: wrap; gap: 4px 24px; font-size: var(--step--1); color: var(--muted); font-variant-numeric: tabular-nums; }
+.meter-banks b { color: var(--ink); font-weight: 700; }
+
+.confirm {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.confirm p { margin: 0; flex: 1 1 220px; min-width: 0; }
+.confirm .actions { display: flex; gap: 8px; }
+
+/* Buttons */
+.btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 44px;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn.primary:hover { opacity: .9; }
+.btn.danger { background: var(--bad); border-color: var(--bad); color: var(--surface); }
+.btn.small { min-height: 36px; padding: 6px 12px; font-size: var(--step--1); }
+.link-btn {
+  appearance: none; border: 0; background: none; padding: 6px 0;
+  color: var(--muted); font-size: var(--step--1); font-weight: 700;
+  text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+}
+.link-btn:hover:not(:disabled) { color: var(--ink); }
+.link-btn:disabled { opacity: .45; text-decoration: none; cursor: default; }
+
+/* Panels */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 22px;
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.panel h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step-2); line-height: 1.15; text-wrap: balance; }
+.panel p { margin: 0; }
+
+/* Home screen */
+.resume { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; padding: 14px 16px; border-radius: 10px; background: var(--bg); }
+.resume-info { display: grid; gap: 2px; min-width: 0; }
+.resume-info strong { font-size: var(--step-1); }
+.resume-info span { color: var(--muted); font-size: var(--step--1); }
+
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 8px; }
+legend { padding: 0; margin-bottom: 8px; }
+.choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+.choice { position: relative; display: block; cursor: pointer; }
+.choice input { position: absolute; opacity: 0; pointer-events: none; }
+.choice span {
+  display: grid; gap: 2px; height: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+}
+.choice span b { font-size: var(--step-1); }
+.choice span small { color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
+.choice:hover span { border-color: var(--muted); }
+.choice input:checked + span { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); box-shadow: inset 0 0 0 1px var(--accent); }
+.choice input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
+.home-actions { display: grid; gap: 12px; justify-items: start; }
+
+/* Flashcard */
+.card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.qmeta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tag {
+  font-family: var(--font-display); font-weight: 600; font-size: var(--step--1);
+  text-transform: uppercase; letter-spacing: .1em;
+  padding: 2px 8px; border-radius: 4px;
+  background: var(--ink); color: var(--surface);
+}
+.qid { font-family: var(--font-mono); font-size: var(--step-0); letter-spacing: .02em; }
+
+.progress { display: grid; gap: 6px; }
+.progress-text { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: var(--step--1); color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress-text strong { color: var(--ink); }
+.bar { height: 4px; border-radius: 2px; background: var(--seg-off); overflow: hidden; }
+.bar span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s ease; }
+
+.qtext {
+  margin: 0;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: var(--step-2);
+  line-height: 1.35;
+  max-width: 62ch;
+}
+.qtext:focus { outline: none; }
+
+.opts { display: grid; gap: 10px; }
+.opt {
+  appearance: none;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 4px 14px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--step-1);
+  line-height: 1.4;
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease, opacity .15s ease;
+}
+.opt:hover:not(:disabled) { border-color: var(--accent); }
+.opt:disabled { cursor: default; color: var(--ink); }
+.opt .key {
+  display: inline-grid; place-items: center;
+  width: 30px; height: 30px;
+  border-radius: 6px;
+  border: 1.5px solid var(--line);
+  font-family: var(--font-mono); font-weight: 500; font-size: var(--step-0);
+}
+.opt .txt { min-width: 0; padding-top: 2px; overflow-wrap: anywhere; }
+.opt .mark { grid-column: 2; font-family: var(--font-display); font-weight: 700; font-size: var(--step--1); text-transform: uppercase; letter-spacing: .08em; }
+.opt.is-correct { border-color: var(--good); background: var(--good-bg); }
+.opt.is-correct .key { border-color: var(--good); background: var(--good); color: var(--surface); }
+.opt.is-correct .mark { color: var(--good); }
+.opt.is-wrong { border-color: var(--bad); background: var(--bad-bg); }
+.opt.is-wrong .key { border-color: var(--bad); background: var(--bad); color: var(--surface); }
+.opt.is-wrong .mark { color: var(--bad); }
+.opt.is-dim { opacity: .55; }
+
+.after { display: flex; align-items: center; justify-content: space-between; gap: 12px 16px; flex-wrap: wrap; min-height: 44px; }
+.verdict { margin: 0; font-weight: 700; font-size: var(--step-1); }
+.verdict.good { color: var(--good); }
+.verdict.bad { color: var(--bad); }
+
+/* Done screen */
+.score { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.score-pct { font-family: var(--font-mono); font-weight: 500; font-size: 3rem; line-height: 1; color: var(--accent-ink); font-variant-numeric: tabular-nums; }
+.score-count { color: var(--muted); font-size: var(--step-1); font-variant-numeric: tabular-nums; }
+
+.foot { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px; }
+.foot p { margin: 0; }
+.kbd-hint { display: none; }
+@media (hover: hover) and (pointer: fine) { .kbd-hint { display: block; } }
+kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); }
+
+.error { border-color: var(--bad); }
+
+@media (max-width: 480px) {
+  .wrap { padding-block: 16px 32px; gap: 16px; }
+  .panel { padding: 16px; gap: 16px; border-radius: 12px; }
+  .qtext { font-size: var(--step-1); }
+  .opt { font-size: var(--step-0); padding: 10px 12px; gap: 4px 12px; }
+  .after .btn { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bar span, .opt { transition: none; }
+}
+</style>
+
+<div class="wrap">
+  <header class="plate">
+    <h1>Amateur Radio Flashcards</h1>
+    <p>Canadian Basic &amp; Advanced exam question banks</p>
+  </header>
+
+  <section class="meter-strip" aria-labelledby="acc-label">
+    <div class="meter-head">
+      <span class="eyebrow" id="acc-label">Accuracy</span>
+      <button class="link-btn" id="reset-acc" type="button">Reset accuracy</button>
+    </div>
+    <div class="meter-read">
+      <span class="meter-pct" id="acc-pct">&mdash;</span>
+      <span class="meter-count" id="acc-count">No answers yet</span>
+    </div>
+    <div class="segments" id="acc-segments" role="meter" aria-labelledby="acc-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+    <div class="meter-banks">
+      <span><b>Basic</b> <span id="acc-basic">&mdash;</span></span>
+      <span><b>Advanced</b> <span id="acc-advanced">&mdash;</span></span>
+    </div>
+    <div class="confirm" id="reset-confirm" hidden>
+      <p id="reset-confirm-text">Clear your accuracy record?</p>
+      <div class="actions">
+        <button class="btn danger small" id="reset-yes" type="button">Reset to zero</button>
+        <button class="btn small" id="reset-no" type="button">Cancel</button>
+      </div>
+    </div>
+  </section>
+
+  <main>
+    <section class="panel error" id="view-error" hidden>
+      <h2>The questions didn't load</h2>
+      <p>This page reads its questions from <code>questions.js</code>. Keep that file in the same folder as this page, then reload.</p>
+    </section>
+
+    <section class="panel" id="view-home" hidden aria-labelledby="home-title">
+      <div class="resume" id="resume" hidden>
+        <div class="resume-info">
+          <span class="eyebrow">Run in progress</span>
+          <strong id="resume-pos">Question 1 of 984</strong>
+          <span id="resume-desc">Basic &middot; In order</span>
+        </div>
+        <button class="btn primary" id="resume-btn" type="button">Resume</button>
+      </div>
+
+      <h2 id="home-title">Start a run</h2>
+
+      <fieldset>
+        <legend class="eyebrow">Questions</legend>
+        <div class="choices">
+          <label class="choice"><input type="radio" name="set" id="set-basic" value="basic"><span><b>Basic</b><small id="count-basic"></small></span></label>
+          <label class="choice"><input type="radio" name="set" id="set-advanced" value="advanced"><span><b>Advanced</b><small id="count-advanced"></small></span></label>
+          <label class="choice"><input type="radio" name="set" id="set-both" value="both"><span><b>Both</b><small id="count-both"></small></span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend class="eyebrow">Order</legend>
+        <div class="choices">
+          <label class="choice"><input type="radio" name="order" id="order-sequential" value="sequential"><span><b>In order</b><small>By question number</small></span></label>
+          <label class="choice"><input type="radio" name="order" id="order-random" value="random"><span><b>Random</b><small>Shuffled, each question once</small></span></label>
+        </div>
+      </fieldset>
+
+      <div class="home-actions">
+        <button class="btn primary" id="start-btn" type="button">Start run</button>
+        <div class="confirm" id="replace-confirm" hidden>
+          <p id="replace-confirm-text">This replaces your current run. Your accuracy record is kept.</p>
+          <div class="actions">
+            <button class="btn danger small" id="replace-yes" type="button">Replace run</button>
+            <button class="btn small" id="replace-no" type="button">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="view-card" hidden aria-labelledby="q-text">
+      <div class="card-top">
+        <div class="qmeta">
+          <span class="tag" id="q-bank">Basic</span>
+          <span class="qid" id="q-id"></span>
+        </div>
+        <button class="link-btn" id="to-home" type="button">Change questions</button>
+      </div>
+      <div class="progress">
+        <div class="progress-text">
+          <strong id="q-pos">Question 1 of 984</strong>
+          <span id="q-run">Basic &middot; In order</span>
+        </div>
+        <div class="bar"><span id="q-bar"></span></div>
+      </div>
+      <h2 class="qtext" id="q-text" tabindex="-1"></h2>
+      <div class="opts" id="opts" role="group" aria-labelledby="q-text"></div>
+      <div class="after">
+        <p class="verdict" id="verdict" role="status" aria-live="polite"></p>
+        <button class="btn primary" id="next" type="button" hidden>Next question</button>
+      </div>
+    </section>
+
+    <section class="panel" id="view-done" hidden aria-labelledby="done-title">
+      <span class="eyebrow">Run complete</span>
+      <h2 id="done-title">All questions answered</h2>
+      <div class="score">
+        <span class="score-pct" id="done-pct">&mdash;</span>
+        <span class="score-count" id="done-count"></span>
+      </div>
+      <p>This is the score for this run only. The accuracy meter above keeps counting until you reset it.</p>
+      <div class="home-actions">
+        <button class="btn primary" id="again-btn" type="button">Start another run</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p id="source-note">Questions from the ISED amateur radio question banks.</p>
+    <p class="kbd-hint">Keys: <kbd>A</kbd>&ndash;<kbd>D</kbd> or <kbd>1</kbd>&ndash;<kbd>4</kbd> to answer, <kbd>Enter</kbd> or <kbd>&rarr;</kbd> for the next question.</p>
+  </footer>
+</div>
+
+<script src="questions.js" charset="utf-8"></script>
+<script>
+(function () {
+  'use strict';
+
+  var STORE_KEY = 'amateurRadioStudy.v1';
+  var LETTERS = ['A', 'B', 'C', 'D'];
+  var SET_LABEL = { basic: 'Basic', advanced: 'Advanced', both: 'Basic + Advanced' };
+  var ORDER_LABEL = { sequential: 'In order', random: 'Random' };
+  var DOT = ' \u00b7 ';
+  var DASH = '\u2014';
+
+  function $(id) { return document.getElementById(id); }
+
+  var bank = window.QUESTION_BANK;
+  if (!bank || !Array.isArray(bank.questions) || !bank.questions.length) {
+    $('view-error').hidden = false;
+    return;
+  }
+
+  var byId = {};
+  var counts = { basic: 0, advanced: 0, both: 0 };
+  bank.questions.forEach(function (q) {
+    byId[q.id] = q;
+    counts[q.bank]++;
+    counts.both++;
+  });
+
+  // ---- State and storage -------------------------------------------------
+
+  function freshStats() {
+    return { basic: { answered: 0, correct: 0 }, advanced: { answered: 0, correct: 0 } };
+  }
+
+  function sanitizeRun(r) {
+    var oldPos = Math.max(0, Math.min(r.pos | 0, r.ids.length));
+    var ids = [];
+    var pos = 0;
+    r.ids.forEach(function (id, i) {
+      if (byId[id]) {
+        if (i < oldPos) pos++;
+        ids.push(id);
+      }
+    });
+    if (!ids.length) return null;
+    var choice = Number.isInteger(r.choice) && r.choice >= 0 && r.choice < 4 ? r.choice : null;
+    // The pending card was dropped from a regenerated bank: its answer is already counted.
+    if (oldPos < r.ids.length && !byId[r.ids[oldPos]]) choice = null;
+    if (pos >= ids.length) choice = null;
+    return {
+      set: SET_LABEL[r.set] ? r.set : 'basic',
+      order: ORDER_LABEL[r.order] ? r.order : 'sequential',
+      ids: ids,
+      pos: pos,
+      choice: choice,
+      answered: Math.max(0, r.answered | 0),
+      correct: Math.max(0, r.correct | 0)
+    };
+  }
+
+  function load() {
+    var state = { settings: { set: 'basic', order: 'sequential' }, run: null, stats: freshStats() };
+    var saved = null;
+    try { saved = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { saved = null; }
+    if (!saved || typeof saved !== 'object') return state;
+    if (saved.settings) {
+      if (SET_LABEL[saved.settings.set]) state.settings.set = saved.settings.set;
+      if (ORDER_LABEL[saved.settings.order]) state.settings.order = saved.settings.order;
+    }
+    if (saved.stats) {
+      ['basic', 'advanced'].forEach(function (b) {
+        var t = saved.stats[b];
+        if (t && Number.isFinite(t.answered) && Number.isFinite(t.correct)) {
+          state.stats[b] = { answered: Math.max(0, t.answered), correct: Math.max(0, t.correct) };
+        }
+      });
+    }
+    if (saved.run && Array.isArray(saved.run.ids)) state.run = sanitizeRun(saved.run);
+    return state;
+  }
+
+  function save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable: keep going in memory */ }
+  }
+
+  var state = load();
+  var view = 'home';
+
+  function runActive() { return !!(state.run && state.run.pos < state.run.ids.length); }
+
+  // ---- Formatting ----------------------------------------------------------
+
+  function pct(correct, answered) {
+    return answered ? (correct / answered * 100).toFixed(1) + '%' : DASH;
+  }
+
+  function scoreLine(correct, answered) {
+    return answered ? correct + ' of ' + answered + ' correct' : 'No answers yet';
+  }
+
+  function runDesc(r) {
+    return SET_LABEL[r.set] + DOT + ORDER_LABEL[r.order];
+  }
+
+  // ---- Accuracy meter ----------------------------------------------------
+
+  var segs = $('acc-segments');
+  for (var s = 0; s < 20; s++) segs.appendChild(document.createElement('span'));
+
+  function renderStats() {
+    var b = state.stats.basic;
+    var a = state.stats.advanced;
+    var answered = b.answered + a.answered;
+    var correct = b.correct + a.correct;
+    $('acc-pct').textContent = pct(correct, answered);
+    $('acc-count').textContent = scoreLine(correct, answered);
+    var value = answered ? correct / answered * 100 : 0;
+    var lit = Math.round(value / 5);
+    Array.prototype.forEach.call(segs.children, function (el, i) { el.classList.toggle('on', i < lit); });
+    segs.setAttribute('aria-valuenow', value.toFixed(1));
+    segs.setAttribute('aria-valuetext', answered ? pct(correct, answered) + ', ' + scoreLine(correct, answered) : 'No answers yet');
+    $('acc-basic').textContent = b.answered ? b.correct + ' of ' + b.answered + DOT + pct(b.correct, b.answered) : DASH;
+    $('acc-advanced').textContent = a.answered ? a.correct + ' of ' + a.answered + DOT + pct(a.correct, a.answered) : DASH;
+    $('reset-acc').disabled = !answered;
+  }
+
+  $('reset-acc').addEventListener('click', function () {
+    var n = state.stats.basic.answered + state.stats.advanced.answered;
+    $('reset-confirm-text').textContent = 'Clear ' + n + ' recorded answer' + (n === 1 ? '' : 's') + ' and start your accuracy from zero? Your place in the current run is kept.';
+    $('reset-confirm').hidden = false;
+    $('reset-no').focus();
+  });
+  $('reset-no').addEventListener('click', function () {
+    $('reset-confirm').hidden = true;
+    $('reset-acc').focus();
+  });
+  $('reset-yes').addEventListener('click', function () {
+    state.stats = freshStats();
+    save();
+    $('reset-confirm').hidden = true;
+    renderStats();
+  });
+
+  // ---- Views ---------------------------------------------------------------
+
+  function show(name) {
+    view = name;
+    $('view-home').hidden = name !== 'home';
+    $('view-card').hidden = name !== 'card';
+    $('view-done').hidden = name !== 'done';
+    if (name === 'home') renderHome();
+    if (name === 'card') renderCard();
+    if (name === 'done') renderDone();
+  }
+
+  // Home
+  $('count-basic').textContent = counts.basic + ' questions';
+  $('count-advanced').textContent = counts.advanced + ' questions';
+  $('count-both').textContent = counts.both + ' questions';
+
+  function renderHome() {
+    $('set-' + state.settings.set).checked = true;
+    $('order-' + state.settings.order).checked = true;
+    $('replace-confirm').hidden = true;
+    var active = runActive();
+    $('resume').hidden = !active;
+    $('home-title').textContent = active ? 'Or start a new run' : 'Start a run';
+    if (active) {
+      $('resume-pos').textContent = 'Question ' + (state.run.pos + 1) + ' of ' + state.run.ids.length;
+      $('resume-desc').textContent = runDesc(state.run) + DOT + scoreLine(state.run.correct, state.run.answered) + ' this run';
+    }
+  }
+
+  document.querySelectorAll('input[name="set"], input[name="order"]').forEach(function (input) {
+    input.addEventListener('change', function () {
+      state.settings[input.name] = input.value;
+      save();
+    });
+  });
+
+  function shuffle(list) {
+    for (var i = list.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = list[i]; list[i] = list[j]; list[j] = t;
+    }
+    return list;
+  }
+
+  function startRun() {
+    var set = state.settings.set;
+    var order = state.settings.order;
+    var ids = bank.questions
+      .filter(function (q) { return set === 'both' || q.bank === set; })
+      .map(function (q) { return q.id; });
+    if (order === 'random') shuffle(ids);
+    state.run = { set: set, order: order, ids: ids, pos: 0, choice: null, answered: 0, correct: 0 };
+    save();
+    show('card');
+    focusQuestion();
+  }
+
+  $('start-btn').addEventListener('click', function () {
+    if (runActive()) {
+      $('replace-confirm-text').textContent = 'This replaces your current run (' + runDesc(state.run) + ', question ' + (state.run.pos + 1) + ' of ' + state.run.ids.length + '). Your accuracy record is kept.';
+      $('replace-confirm').hidden = false;
+      $('replace-no').focus();
+      return;
+    }
+    startRun();
+  });
+  $('replace-yes').addEventListener('click', startRun);
+  $('replace-no').addEventListener('click', function () {
+    $('replace-confirm').hidden = true;
+    $('start-btn').focus();
+  });
+  $('resume-btn').addEventListener('click', function () { show('card'); focusQuestion(); });
+  $('to-home').addEventListener('click', function () { show('home'); });
+  $('again-btn').addEventListener('click', function () { show('home'); });
+
+  // Flashcard
+  function currentQuestion() { return byId[state.run.ids[state.run.pos]]; }
+
+  function renderCard() {
+    var r = state.run;
+    var q = currentQuestion();
+    var total = r.ids.length;
+    $('q-bank').textContent = q.bank === 'basic' ? 'Basic' : 'Advanced';
+    $('q-id').textContent = q.id;
+    $('q-pos').textContent = 'Question ' + (r.pos + 1) + ' of ' + total;
+    $('q-run').textContent = runDesc(r);
+    $('q-bar').style.width = ((r.pos + (r.choice === null ? 0 : 1)) / total * 100) + '%';
+    $('q-text').textContent = q.q;
+
+    var answered = r.choice !== null;
+    var opts = $('opts');
+    opts.textContent = '';
+    q.options.forEach(function (text, i) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'opt';
+      btn.dataset.i = i;
+      var key = document.createElement('span');
+      key.className = 'key';
+      key.textContent = LETTERS[i];
+      var txt = document.createElement('span');
+      txt.className = 'txt';
+      txt.textContent = text;
+      btn.appendChild(key);
+      btn.appendChild(txt);
+      if (answered) {
+        btn.disabled = true;
+        var mark = null;
+        if (i === q.answer) {
+          btn.classList.add('is-correct');
+          mark = r.choice === i ? '\u2713 Correct' : '\u2713 Correct answer';
+        } else if (i === r.choice) {
+          btn.classList.add('is-wrong');
+          mark = '\u2717 Incorrect';
+        } else {
+          btn.classList.add('is-dim');
+        }
+        if (mark) {
+          var m = document.createElement('span');
+          m.className = 'mark';
+          m.textContent = mark;
+          btn.appendChild(m);
+        }
+      } else {
+        btn.addEventListener('click', function () { answer(i); });
+      }
+      opts.appendChild(btn);
+    });
+
+    var verdict = $('verdict');
+    var next = $('next');
+    if (answered) {
+      var ok = r.choice === q.answer;
+      verdict.textContent = ok ? 'Correct.' : 'Incorrect. The answer is ' + LETTERS[q.answer] + '.';
+      verdict.className = 'verdict ' + (ok ? 'good' : 'bad');
+      next.textContent = r.pos + 1 >= total ? 'Finish run' : 'Next question';
+      next.hidden = false;
+    } else {
+      verdict.textContent = '';
+      verdict.className = 'verdict';
+      next.hidden = true;
+    }
+  }
+
+  function focusQuestion() {
+    $('q-text').focus({ preventScroll: true });
+    $('view-card').scrollIntoView({ block: 'start' });
+  }
+
+  function answer(i) {
+    var r = state.run;
+    if (view !== 'card' || !r || r.choice !== null) return;
+    var q = currentQuestion();
+    var ok = i === q.answer;
+    r.choice = i;
+    r.answered++;
+    if (ok) r.correct++;
+    var t = state.stats[q.bank];
+    t.answered++;
+    if (ok) t.correct++;
+    save();
+    renderCard();
+    renderStats();
+    var next = $('next');
+    next.focus({ preventScroll: true });
+    next.scrollIntoView({ block: 'nearest' });
+  }
+
+  function nextQuestion() {
+    var r = state.run;
+    if (view !== 'card' || !r || r.choice === null) return;
+    r.pos++;
+    r.choice = null;
+    save();
+    if (r.pos >= r.ids.length) {
+      show('done');
+      $('again-btn').focus({ preventScroll: true });
+      return;
+    }
+    renderCard();
+    focusQuestion();
+  }
+
+  $('next').addEventListener('click', nextQuestion);
+
+  // Done
+  function renderDone() {
+    var r = state.run;
+    if (!r) { show('home'); return; }
+    $('done-title').textContent = 'All ' + r.ids.length + ' ' + SET_LABEL[r.set] + ' questions answered';
+    $('done-pct').textContent = pct(r.correct, r.answered);
+    $('done-count').textContent = scoreLine(r.correct, r.answered) + ' this run';
+  }
+
+  // Keyboard: A-D or 1-4 answer, Enter or Right arrow moves on.
+  var KEY_INDEX = { a: 0, b: 1, c: 2, d: 3, '1': 0, '2': 1, '3': 2, '4': 3 };
+  document.addEventListener('keydown', function (e) {
+    if (view !== 'card' || e.metaKey || e.ctrlKey || e.altKey) return;
+    var target = e.target;
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+    var r = state.run;
+    if (r.choice === null) {
+      var idx = KEY_INDEX[e.key.toLowerCase()];
+      if (idx !== undefined) {
+        e.preventDefault();
+        answer(idx);
+      }
+      return;
+    }
+    if (e.key === 'Enter' || e.key === 'ArrowRight') {
+      var onOtherButton = target && target.closest && target.closest('button') && target.id !== 'next';
+      if (e.key === 'Enter' && onOtherButton) return;
+      e.preventDefault();
+      nextQuestion();
+    }
+  });
+
+  // ---- Boot ----------------------------------------------------------------
+
+  var src = bank.sources || {};
+  if (src.basic && src.advanced) {
+    $('source-note').textContent = 'Questions and answers from the ISED Basic (' + src.basic.date + ') and Advanced (' + src.advanced.date + ') Qualification question banks for the Amateur Radio Operator Certificate.';
+  }
+
+  renderStats();
+  if (runActive()) show('card');
+  else if (state.run) show('done');
+  else show('home');
+})();
+</script>

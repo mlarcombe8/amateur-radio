@@ -1,0 +1,8 @@
+# This repository publishes the flashcard app on GitHub Pages, so only the
+# files the web page needs are tracked. The ISED PDFs, extract_questions.py
+# and editor settings stay local.
+*
+!.gitignore
+!.nojekyll
+!index.html
+!questions.js
