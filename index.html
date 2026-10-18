@@ -5,7 +5,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: one 720px column like a rig's front panel: name plate, accuracy meter strip, then the flashcard. */
+/* Layout: one 720px column like a rig's front panel: name plate and courses, section and unit lists, then the flashcard, with the main action pinned to the bottom of the screen. */
 :root {
   --bg: #e9edf1;
   --surface: #ffffff;
@@ -14,6 +14,7 @@
   --line: #cfd7df;
   --accent: #d0820f;
   --accent-ink: #8a5200;
+  --retry: #2f6db5;
   --seg-off: #d9e0e7;
   --good: #17703f;
   --good-bg: #e2f3e9;
@@ -30,6 +31,8 @@
   --step-1: 1.1875rem;
   --step-2: 1.4375rem;
   --step-3: 2rem;
+
+  --dock-space: calc(96px + env(safe-area-inset-bottom, 0px));
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -40,6 +43,7 @@
     --line: #273644;
     --accent: #f2a43a;
     --accent-ink: #f6bb66;
+    --retry: #7fb2ee;
     --seg-off: #22303d;
     --good: #5acb8c;
     --good-bg: #123022;
@@ -57,6 +61,7 @@
   --line: #273644;
   --accent: #f2a43a;
   --accent-ink: #f6bb66;
+  --retry: #7fb2ee;
   --seg-off: #22303d;
   --good: #5acb8c;
   --good-bg: #123022;
@@ -68,6 +73,7 @@
 
 [hidden] { display: none !important; }
 *, *::before, *::after { box-sizing: border-box; }
+html { scroll-padding-bottom: var(--dock-space); }
 
 body {
   margin: 0;
@@ -85,12 +91,14 @@ body {
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 24px 40px;
-  display: grid;
-  gap: 20px;
 }
+body.has-dock .wrap { padding-bottom: var(--dock-space); }
+
+.view { display: grid; gap: 20px; min-width: 0; }
 
 button { font: inherit; color: inherit; }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 /* Name plate */
 .plate { display: flex; align-items: baseline; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
@@ -114,25 +122,6 @@ button { font: inherit; color: inherit; }
   color: var(--muted);
 }
 
-/* Accuracy meter strip */
-.meter-strip { display: grid; gap: 10px; border-block: 1px solid var(--line); padding-block: 14px; }
-.meter-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.meter-read { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-.meter-pct {
-  font-family: var(--font-mono);
-  font-weight: 500;
-  font-size: var(--step-3);
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  color: var(--accent-ink);
-}
-.meter-count { color: var(--muted); font-variant-numeric: tabular-nums; }
-.segments { display: grid; grid-template-columns: repeat(20, 1fr); gap: 3px; height: 14px; }
-.segments span { border-radius: 2px; background: var(--seg-off); }
-.segments span.on { background: var(--accent); }
-.meter-banks { display: flex; flex-wrap: wrap; gap: 4px 24px; font-size: var(--step--1); color: var(--muted); font-variant-numeric: tabular-nums; }
-.meter-banks b { color: var(--ink); font-weight: 700; }
-
 .confirm {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
   padding: 10px 12px;
@@ -154,11 +143,12 @@ button { font: inherit; color: inherit; }
   cursor: pointer;
   min-height: 44px;
 }
-.btn:hover { border-color: var(--muted); }
+.btn:hover:not(:disabled) { border-color: var(--muted); }
 .btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-.btn.primary:hover { opacity: .9; }
+.btn.primary:hover:not(:disabled) { opacity: .9; }
 .btn.danger { background: var(--bad); border-color: var(--bad); color: var(--surface); }
 .btn.small { min-height: 36px; padding: 6px 12px; font-size: var(--step--1); }
+.btn:disabled { opacity: .4; cursor: default; }
 .link-btn {
   appearance: none; border: 0; background: none; padding: 6px 0;
   color: var(--muted); font-size: var(--step--1); font-weight: 700;
@@ -166,6 +156,7 @@ button { font: inherit; color: inherit; }
 }
 .link-btn:hover:not(:disabled) { color: var(--ink); }
 .link-btn:disabled { opacity: .45; text-decoration: none; cursor: default; }
+.nav-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
 /* Panels */
 .panel {
@@ -181,46 +172,98 @@ button { font: inherit; color: inherit; }
 .panel h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step-2); line-height: 1.15; text-wrap: balance; }
 .panel p { margin: 0; }
 
-/* Home screen */
-.resume { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; padding: 14px 16px; border-radius: 10px; background: var(--bg); }
-.resume-info { display: grid; gap: 2px; min-width: 0; }
-.resume-info strong { font-size: var(--step-1); }
-.resume-info span { color: var(--muted); font-size: var(--step--1); }
+.bar { display: block; height: 4px; border-radius: 2px; background: var(--seg-off); overflow: hidden; }
+.bar span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s ease; }
 
-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 8px; }
-legend { padding: 0; margin-bottom: 8px; }
-.choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
-.choice { position: relative; display: block; cursor: pointer; }
-.choice input { position: absolute; opacity: 0; pointer-events: none; }
-.choice span {
-  display: grid; gap: 2px; height: 100%;
-  padding: 12px 14px;
-  border: 1.5px solid var(--line);
-  border-radius: 10px;
+/* Courses (home) */
+.courses { display: grid; gap: 12px; }
+.course-card {
+  appearance: none;
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  cursor: pointer;
 }
-.choice span b { font-size: var(--step-1); }
-.choice span small { color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
-.choice:hover span { border-color: var(--muted); }
-.choice input:checked + span { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); box-shadow: inset 0 0 0 1px var(--accent); }
-.choice input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
-.home-actions { display: grid; gap: 12px; justify-items: start; }
+.course-card:hover { border-color: var(--accent); }
+.course-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.course-name { font-family: var(--font-display); font-weight: 700; font-size: var(--step-3); line-height: 1; }
+.course-sub, .course-count { color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
+.course-card .bar { height: 6px; border-radius: 3px; }
+.chev { font-size: 1.5rem; line-height: 1; color: var(--muted); }
+.secondary { display: flex; justify-content: center; }
+
+/* Section and unit lists */
+.view-head { display: grid; gap: 6px; }
+.view-title { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step-3); line-height: 1.05; }
+.view-title:focus, h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
+.view-sub { margin: 0; color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
+.view-head .bar { height: 6px; border-radius: 3px; margin-top: 4px; }
+
+.rows {
+  display: grid;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.row {
+  appearance: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 12px;
+  width: 100%;
+  min-height: 60px;
+  padding: 12px 16px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: none;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.row:first-child { border-top: 0; }
+.row:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+.row-title { grid-column: 1; font-weight: 700; font-size: var(--step-1); }
+.row-sub { grid-column: 1; color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
+.row .bar { grid-column: 1; margin-top: 6px; }
+.row-side {
+  grid-column: 2; grid-row: 1 / span 3;
+  display: flex; align-items: center; gap: 10px;
+  color: var(--muted); font-size: var(--step--1); font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.row.is-locked { cursor: default; }
+.row.is-locked .row-title, .row.is-locked .row-sub { color: var(--muted); opacity: .7; }
+.status-perfect { color: var(--good); }
+.status-progress { color: var(--accent-ink); }
+.lock { display: inline-flex; color: var(--muted); }
+.lock svg { display: block; width: 16px; height: 16px; }
 
 /* Flashcard */
 .card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.qmeta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .tag {
   font-family: var(--font-display); font-weight: 600; font-size: var(--step--1);
   text-transform: uppercase; letter-spacing: .1em;
   padding: 2px 8px; border-radius: 4px;
   background: var(--ink); color: var(--surface);
 }
-.qid { font-family: var(--font-mono); font-size: var(--step-0); letter-spacing: .02em; }
 
 .progress { display: grid; gap: 6px; }
 .progress-text { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: var(--step--1); color: var(--muted); font-variant-numeric: tabular-nums; }
 .progress-text strong { color: var(--ink); }
-.bar { height: 4px; border-radius: 2px; background: var(--seg-off); overflow: hidden; }
-.bar span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s ease; }
+
+.unit-bar { height: 10px; border-radius: 5px; background: var(--seg-off); overflow: hidden; }
+.unit-bar span { display: block; height: 100%; width: 0; border-radius: 5px; background: var(--accent); transition: width .25s ease; }
+.unit-bar.is-retry span { background: var(--retry); }
+.phase-label { margin: -8px 0 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step--1); text-transform: uppercase; letter-spacing: .1em; color: var(--retry); }
 
 .qtext {
   margin: 0;
@@ -262,6 +305,8 @@ legend { padding: 0; margin-bottom: 8px; }
 }
 .opt .txt { min-width: 0; padding-top: 2px; overflow-wrap: anywhere; }
 .opt .mark { grid-column: 2; font-family: var(--font-display); font-weight: 700; font-size: var(--step--1); text-transform: uppercase; letter-spacing: .08em; }
+.opt.is-selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); box-shadow: inset 0 0 0 1px var(--accent); }
+.opt.is-selected .key { border-color: var(--accent); color: var(--accent-ink); }
 .opt.is-correct { border-color: var(--good); background: var(--good-bg); }
 .opt.is-correct .key { border-color: var(--good); background: var(--good); color: var(--surface); }
 .opt.is-correct .mark { color: var(--good); }
@@ -270,153 +315,247 @@ legend { padding: 0; margin-bottom: 8px; }
 .opt.is-wrong .mark { color: var(--bad); }
 .opt.is-dim { opacity: .55; }
 
-.after { display: flex; align-items: center; justify-content: space-between; gap: 12px 16px; flex-wrap: wrap; min-height: 44px; }
-.verdict { margin: 0; font-weight: 700; font-size: var(--step-1); }
+.verdict { margin: 0; min-height: 1.5em; font-weight: 700; font-size: var(--step-1); }
 .verdict.good { color: var(--good); }
 .verdict.bad { color: var(--bad); }
 
-/* Done screen */
+/* Home screen of All questions */
+.resume { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; padding: 14px 16px; border-radius: 10px; background: var(--bg); }
+.resume-info { display: grid; gap: 2px; min-width: 0; }
+.resume-info strong { font-size: var(--step-1); }
+.resume-info span { color: var(--muted); font-size: var(--step--1); }
+
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 8px; }
+legend { padding: 0; margin-bottom: 8px; }
+.choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+.choice { position: relative; display: block; cursor: pointer; }
+.choice input { position: absolute; opacity: 0; pointer-events: none; }
+.choice span {
+  display: grid; gap: 2px; height: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+}
+.choice span b { font-size: var(--step-1); }
+.choice span small { color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
+.choice:hover span { border-color: var(--muted); }
+.choice input:checked + span { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); box-shadow: inset 0 0 0 1px var(--accent); }
+.choice input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
+.home-actions { display: grid; gap: 12px; justify-items: start; }
+
+/* Results */
 .score { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
 .score-pct { font-family: var(--font-mono); font-weight: 500; font-size: 3rem; line-height: 1; color: var(--accent-ink); font-variant-numeric: tabular-nums; }
 .score-count { color: var(--muted); font-size: var(--step-1); font-variant-numeric: tabular-nums; }
+.result-title-perfect { color: var(--good); }
+.result-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.note { color: var(--muted); }
+
+/* Pinned action dock */
+.dock {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 10;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -6px 18px rgba(0, 0, 0, .06);
+  padding-top: 12px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.dock-inner { max-width: 720px; margin: 0 auto; }
+.dock .btn { display: grid; place-items: center; width: 100%; min-height: 54px; font-size: var(--step-1); line-height: 1.2; }
+.dock-sub { font-size: var(--step--1); font-weight: 400; opacity: .8; }
 
 .foot { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px; }
 .foot p { margin: 0; }
-.kbd-hint { display: none; }
+.kbd-hint { display: none; color: var(--muted); font-size: var(--step--1); }
 @media (hover: hover) and (pointer: fine) { .kbd-hint { display: block; } }
 kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); }
 
 .error { border-color: var(--bad); }
 
 @media (max-width: 480px) {
-  .wrap { padding-block: 16px 32px; gap: 16px; }
+  .wrap { padding-block: 16px 32px; }
+  .view { gap: 16px; }
   .panel { padding: 16px; gap: 16px; border-radius: 12px; }
   .qtext { font-size: var(--step-1); }
   .opt { font-size: var(--step-0); padding: 10px 12px; gap: 4px 12px; }
-  .after .btn { width: 100%; }
+  .course-card { padding: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .bar span, .opt { transition: none; }
+  .bar span, .unit-bar span, .opt { transition: none; }
 }
 </style>
 
 <div class="wrap">
-  <header class="plate">
-    <h1>Amateur Radio Flashcards</h1>
-    <p>Canadian Basic &amp; Advanced exam question banks</p>
-  </header>
+  <section class="panel error" id="view-error" hidden>
+    <h2>The questions didn't load</h2>
+    <p>This page reads its questions from <code>questions.js</code>. Keep that file in the same folder as this page, then reload.</p>
+  </section>
 
-  <section class="meter-strip" aria-labelledby="acc-label">
-    <div class="meter-head">
-      <span class="eyebrow" id="acc-label">Accuracy</span>
-      <button class="link-btn" id="reset-acc" type="button">Reset accuracy</button>
+  <section class="view" id="view-home" hidden aria-labelledby="home-title">
+    <header class="plate">
+      <h1 id="home-title" tabindex="-1">Amateur Radio Flashcards</h1>
+      <p>Canadian Basic &amp; Advanced exam question banks</p>
+    </header>
+    <div class="courses">
+      <button class="course-card" id="course-basic" type="button">
+        <span class="course-head"><span class="course-name">Basic</span><span class="chev" aria-hidden="true">&rsaquo;</span></span>
+        <span class="course-sub"></span>
+        <span class="bar"><span></span></span>
+        <span class="course-count"></span>
+      </button>
+      <button class="course-card" id="course-advanced" type="button">
+        <span class="course-head"><span class="course-name">Advanced</span><span class="chev" aria-hidden="true">&rsaquo;</span></span>
+        <span class="course-sub"></span>
+        <span class="bar"><span></span></span>
+        <span class="course-count"></span>
+      </button>
     </div>
-    <div class="meter-read">
-      <span class="meter-pct" id="acc-pct">&mdash;</span>
-      <span class="meter-count" id="acc-count">No answers yet</span>
+    <div class="secondary">
+      <button class="link-btn" id="to-runsetup" type="button">All questions, in order or random</button>
     </div>
-    <div class="segments" id="acc-segments" role="meter" aria-labelledby="acc-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
-    <div class="meter-banks">
-      <span><b>Basic</b> <span id="acc-basic">&mdash;</span></span>
-      <span><b>Advanced</b> <span id="acc-advanced">&mdash;</span></span>
+    <footer class="foot">
+      <p id="source-note">Questions from the ISED amateur radio question banks.</p>
+    </footer>
+  </section>
+
+  <section class="view" id="view-sections" hidden aria-labelledby="sections-title">
+    <div class="nav-row"><button class="link-btn" id="sections-back" type="button">&lsaquo; Courses</button></div>
+    <div class="view-head">
+      <h2 class="view-title" id="sections-title" tabindex="-1">Basic</h2>
+      <p class="view-sub" id="sections-sub"></p>
+      <span class="bar"><span id="sections-bar"></span></span>
     </div>
-    <div class="confirm" id="reset-confirm" hidden>
-      <p id="reset-confirm-text">Clear your accuracy record?</p>
+    <div class="rows" id="sections-list"></div>
+  </section>
+
+  <section class="view" id="view-units" hidden aria-labelledby="units-title">
+    <div class="nav-row"><button class="link-btn" id="units-back" type="button">&lsaquo; Sections</button></div>
+    <div class="view-head">
+      <span class="eyebrow" id="units-course">Basic</span>
+      <h2 class="view-title" id="units-title" tabindex="-1">Section 1</h2>
+      <p class="view-sub" id="units-sub"></p>
+      <span class="bar"><span id="units-bar"></span></span>
+    </div>
+    <div class="rows" id="units-list"></div>
+  </section>
+
+  <section class="panel" id="view-play" hidden aria-labelledby="play-text">
+    <div class="card-top">
+      <span class="eyebrow" id="play-where"></span>
+      <button class="link-btn" id="play-leave" type="button">Leave unit</button>
+    </div>
+    <div class="confirm" id="leave-confirm" hidden>
+      <p>Leave this unit? This attempt won't be scored.</p>
       <div class="actions">
-        <button class="btn danger small" id="reset-yes" type="button">Reset to zero</button>
-        <button class="btn small" id="reset-no" type="button">Cancel</button>
+        <button class="btn danger small" id="leave-yes" type="button">Leave unit</button>
+        <button class="btn small" id="leave-no" type="button">Keep going</button>
+      </div>
+    </div>
+    <div class="unit-bar" id="play-bar" role="progressbar" aria-label="Unit progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+    <p class="phase-label" id="play-phase" hidden>Second try</p>
+    <h2 class="qtext" id="play-text" tabindex="-1"></h2>
+    <div class="opts" id="play-opts" role="group" aria-labelledby="play-text"></div>
+    <p class="verdict" id="play-verdict" role="status" aria-live="polite"></p>
+    <p class="kbd-hint">Keys: <kbd>A</kbd>&ndash;<kbd>D</kbd> or <kbd>1</kbd>&ndash;<kbd>4</kbd> to choose, <kbd>Enter</kbd> to check, then <kbd>Enter</kbd> or <kbd>&rarr;</kbd> for the next question.</p>
+  </section>
+
+  <section class="panel" id="view-result" hidden aria-labelledby="result-title">
+    <span class="eyebrow" id="result-where"></span>
+    <h2 id="result-title" tabindex="-1">Unit complete</h2>
+    <div class="score">
+      <span class="score-pct" id="result-score"></span>
+      <span class="score-count">right on the first try</span>
+    </div>
+    <p id="result-best"></p>
+    <p class="note" id="result-note" hidden></p>
+    <div class="result-actions">
+      <button class="btn" id="result-again" type="button">Play again</button>
+      <button class="btn" id="result-next" type="button">Next unit</button>
+    </div>
+    <div><button class="link-btn" id="result-back" type="button">Back to units</button></div>
+  </section>
+
+  <section class="panel" id="view-runsetup" hidden aria-labelledby="runsetup-title">
+    <div class="nav-row"><button class="link-btn" id="runsetup-back" type="button">&lsaquo; Courses</button></div>
+    <div class="resume" id="resume" hidden>
+      <div class="resume-info">
+        <span class="eyebrow">Run in progress</span>
+        <strong id="resume-pos">Question 1 of 984</strong>
+        <span id="resume-desc">Basic &middot; In order</span>
+      </div>
+      <button class="btn primary" id="resume-btn" type="button">Resume</button>
+    </div>
+
+    <h2 id="runsetup-title" tabindex="-1">All questions</h2>
+
+    <fieldset>
+      <legend class="eyebrow">Questions</legend>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="set" id="set-basic" value="basic"><span><b>Basic</b><small id="count-basic"></small></span></label>
+        <label class="choice"><input type="radio" name="set" id="set-advanced" value="advanced"><span><b>Advanced</b><small id="count-advanced"></small></span></label>
+        <label class="choice"><input type="radio" name="set" id="set-both" value="both"><span><b>Both</b><small id="count-both"></small></span></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend class="eyebrow">Order</legend>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="order" id="order-sequential" value="sequential"><span><b>In order</b><small>By question number</small></span></label>
+        <label class="choice"><input type="radio" name="order" id="order-random" value="random"><span><b>Random</b><small>Shuffled, each question once</small></span></label>
+      </div>
+    </fieldset>
+
+    <div class="home-actions">
+      <button class="btn primary" id="start-btn" type="button">Start run</button>
+      <div class="confirm" id="replace-confirm" hidden>
+        <p id="replace-confirm-text">This replaces your current run.</p>
+        <div class="actions">
+          <button class="btn danger small" id="replace-yes" type="button">Replace run</button>
+          <button class="btn small" id="replace-no" type="button">Cancel</button>
+        </div>
       </div>
     </div>
   </section>
 
-  <main>
-    <section class="panel error" id="view-error" hidden>
-      <h2>The questions didn't load</h2>
-      <p>This page reads its questions from <code>questions.js</code>. Keep that file in the same folder as this page, then reload.</p>
-    </section>
-
-    <section class="panel" id="view-home" hidden aria-labelledby="home-title">
-      <div class="resume" id="resume" hidden>
-        <div class="resume-info">
-          <span class="eyebrow">Run in progress</span>
-          <strong id="resume-pos">Question 1 of 984</strong>
-          <span id="resume-desc">Basic &middot; In order</span>
-        </div>
-        <button class="btn primary" id="resume-btn" type="button">Resume</button>
+  <section class="panel" id="view-card" hidden aria-labelledby="q-text">
+    <div class="card-top">
+      <span class="tag" id="q-bank">Basic</span>
+      <button class="link-btn" id="to-runsetup-from-card" type="button">Change questions</button>
+    </div>
+    <div class="progress">
+      <div class="progress-text">
+        <strong id="q-pos">Question 1 of 984</strong>
+        <span id="q-run">Basic &middot; In order</span>
       </div>
+      <span class="bar"><span id="q-bar"></span></span>
+    </div>
+    <h2 class="qtext" id="q-text" tabindex="-1"></h2>
+    <div class="opts" id="q-opts" role="group" aria-labelledby="q-text"></div>
+    <p class="verdict" id="q-verdict" role="status" aria-live="polite"></p>
+    <p class="kbd-hint">Keys: <kbd>A</kbd>&ndash;<kbd>D</kbd> or <kbd>1</kbd>&ndash;<kbd>4</kbd> to choose, <kbd>Enter</kbd> to check, then <kbd>Enter</kbd> or <kbd>&rarr;</kbd> for the next question.</p>
+  </section>
 
-      <h2 id="home-title">Start a run</h2>
+  <section class="panel" id="view-done" hidden aria-labelledby="done-title">
+    <span class="eyebrow">Run complete</span>
+    <h2 id="done-title" tabindex="-1">All questions answered</h2>
+    <div class="score">
+      <span class="score-pct" id="done-pct">&mdash;</span>
+      <span class="score-count" id="done-count"></span>
+    </div>
+    <div class="home-actions">
+      <button class="btn primary" id="again-btn" type="button">Start another run</button>
+    </div>
+  </section>
+</div>
 
-      <fieldset>
-        <legend class="eyebrow">Questions</legend>
-        <div class="choices">
-          <label class="choice"><input type="radio" name="set" id="set-basic" value="basic"><span><b>Basic</b><small id="count-basic"></small></span></label>
-          <label class="choice"><input type="radio" name="set" id="set-advanced" value="advanced"><span><b>Advanced</b><small id="count-advanced"></small></span></label>
-          <label class="choice"><input type="radio" name="set" id="set-both" value="both"><span><b>Both</b><small id="count-both"></small></span></label>
-        </div>
-      </fieldset>
-
-      <fieldset>
-        <legend class="eyebrow">Order</legend>
-        <div class="choices">
-          <label class="choice"><input type="radio" name="order" id="order-sequential" value="sequential"><span><b>In order</b><small>By question number</small></span></label>
-          <label class="choice"><input type="radio" name="order" id="order-random" value="random"><span><b>Random</b><small>Shuffled, each question once</small></span></label>
-        </div>
-      </fieldset>
-
-      <div class="home-actions">
-        <button class="btn primary" id="start-btn" type="button">Start run</button>
-        <div class="confirm" id="replace-confirm" hidden>
-          <p id="replace-confirm-text">This replaces your current run. Your accuracy record is kept.</p>
-          <div class="actions">
-            <button class="btn danger small" id="replace-yes" type="button">Replace run</button>
-            <button class="btn small" id="replace-no" type="button">Cancel</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel" id="view-card" hidden aria-labelledby="q-text">
-      <div class="card-top">
-        <div class="qmeta">
-          <span class="tag" id="q-bank">Basic</span>
-          <span class="qid" id="q-id"></span>
-        </div>
-        <button class="link-btn" id="to-home" type="button">Change questions</button>
-      </div>
-      <div class="progress">
-        <div class="progress-text">
-          <strong id="q-pos">Question 1 of 984</strong>
-          <span id="q-run">Basic &middot; In order</span>
-        </div>
-        <div class="bar"><span id="q-bar"></span></div>
-      </div>
-      <h2 class="qtext" id="q-text" tabindex="-1"></h2>
-      <div class="opts" id="opts" role="group" aria-labelledby="q-text"></div>
-      <div class="after">
-        <p class="verdict" id="verdict" role="status" aria-live="polite"></p>
-        <button class="btn primary" id="next" type="button" hidden>Next question</button>
-      </div>
-    </section>
-
-    <section class="panel" id="view-done" hidden aria-labelledby="done-title">
-      <span class="eyebrow">Run complete</span>
-      <h2 id="done-title">All questions answered</h2>
-      <div class="score">
-        <span class="score-pct" id="done-pct">&mdash;</span>
-        <span class="score-count" id="done-count"></span>
-      </div>
-      <p>This is the score for this run only. The accuracy meter above keeps counting until you reset it.</p>
-      <div class="home-actions">
-        <button class="btn primary" id="again-btn" type="button">Start another run</button>
-      </div>
-    </section>
-  </main>
-
-  <footer class="foot">
-    <p id="source-note">Questions from the ISED amateur radio question banks.</p>
-    <p class="kbd-hint">Keys: <kbd>A</kbd>&ndash;<kbd>D</kbd> or <kbd>1</kbd>&ndash;<kbd>4</kbd> to answer, <kbd>Enter</kbd> or <kbd>&rarr;</kbd> for the next question.</p>
-  </footer>
+<div class="dock" id="dock" hidden>
+  <div class="dock-inner">
+    <button class="btn primary" id="dock-btn" type="button"><span id="dock-label">Continue</span><span class="dock-sub" id="dock-sub" hidden></span></button>
+  </div>
 </div>
 
 <script src="questions.js" charset="utf-8"></script>
@@ -424,14 +563,37 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
 (function () {
   'use strict';
 
-  var STORE_KEY = 'amateurRadioStudy.v1';
+  // Unlock-as-you-go. When true, a unit opens only after every earlier unit in
+  // its course has a perfect score; the first unit of each course is always open.
+  // Built and tested, switched off for now.
+  var UNLOCK_IN_ORDER = false;
+
+  var STORE_KEY = 'amateurRadioStudy.v1';        // All questions mode
+  var UNITS_KEY = 'amateurRadioStudy.units.v1';  // Unit scores and the unit in progress
   var LETTERS = ['A', 'B', 'C', 'D'];
+  var COURSE_NAME = { basic: 'Basic', advanced: 'Advanced' };
   var SET_LABEL = { basic: 'Basic', advanced: 'Advanced', both: 'Basic + Advanced' };
   var ORDER_LABEL = { sequential: 'In order', random: 'Random' };
   var DOT = ' \u00b7 ';
   var DASH = '\u2014';
+  var LOCK_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.75 7V5.25a3.25 3.25 0 0 1 6.5 0V7" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="3" y="7" width="10" height="7.5" rx="1.6" fill="currentColor"/></svg>';
 
   function $(id) { return document.getElementById(id); }
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  function barEl(fraction) {
+    var bar = el('span', 'bar');
+    var fill = el('span');
+    fill.style.width = (fraction * 100) + '%';
+    bar.appendChild(fill);
+    return bar;
+  }
 
   var bank = window.QUESTION_BANK;
   if (!bank || !Array.isArray(bank.questions) || !bank.questions.length) {
@@ -447,11 +609,145 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     counts.both++;
   });
 
-  // ---- State and storage -------------------------------------------------
+  // ---- Courses, sections and units, read from the question IDs -------------
+  // B-002-005-003 is course Basic, section 002, unit 005, question 003.
 
-  function freshStats() {
-    return { basic: { answered: 0, correct: 0 }, advanced: { answered: 0, correct: 0 } };
+  function fnv1a(str) {
+    var h = 0x811c9dc5;
+    for (var i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return ('0000000' + h.toString(16)).slice(-8);
   }
+
+  // A unit's fingerprint changes if ISED changes any of its questions or answers.
+  function fingerprint(unit) {
+    return fnv1a(JSON.stringify(unit.ids.map(function (id) {
+      var q = byId[id];
+      return [q.id, q.q, q.options, q.answer];
+    })));
+  }
+
+  var courses = {};
+  var unitByKey = {};
+  var sectionByKey = {};
+  ['basic', 'advanced'].forEach(function (c) {
+    courses[c] = { key: c, name: COURSE_NAME[c], sections: [], flat: [] };
+  });
+  bank.questions.forEach(function (q) {
+    var course = courses[q.bank];
+    if (!course) return;
+    var sKey = q.id.slice(0, 5);
+    var uKey = q.id.slice(0, 9);
+    var sec = sectionByKey[sKey];
+    if (!sec) {
+      sec = { key: sKey, n: course.sections.length + 1, units: [], course: course };
+      sectionByKey[sKey] = sec;
+      course.sections.push(sec);
+    }
+    var unit = unitByKey[uKey];
+    if (!unit) {
+      unit = { key: uKey, n: sec.units.length + 1, ids: [], section: sec, course: course };
+      unitByKey[uKey] = unit;
+      sec.units.push(unit);
+    }
+    unit.ids.push(q.id);
+  });
+  Object.keys(courses).forEach(function (c) {
+    courses[c].sections.forEach(function (sec) {
+      sec.units.forEach(function (u) {
+        u.index = courses[c].flat.length;
+        u.fp = fingerprint(u);
+        courses[c].flat.push(u);
+      });
+    });
+  });
+
+  // ---- Unit scores and the unit in progress --------------------------------
+
+  function sanitizeAttempt(a) {
+    var u = a && unitByKey[a.unit];
+    if (!u || a.fp !== u.fp) return null;
+    var missed = Array.isArray(a.missed) ? a.missed.filter(function (id, i, list) {
+      return u.ids.indexOf(id) >= 0 && list.indexOf(id) === i;
+    }) : [];
+    var phase = a.phase === 2 && missed.length ? 2 : 1;
+    var length = phase === 1 ? u.ids.length : missed.length;
+    var pos = a.pos | 0;
+    if (pos < 0 || pos >= length) return null;
+    return {
+      unit: u.key,
+      fp: u.fp,
+      phase: phase,
+      pos: pos,
+      missed: missed,
+      firstCorrect: Math.max(0, Math.min(a.firstCorrect | 0, u.ids.length)),
+      choice: Number.isInteger(a.choice) && a.choice >= 0 && a.choice < 4 ? a.choice : null
+    };
+  }
+
+  var unitsDropped = false;
+
+  function loadUnits() {
+    var st = { scores: {}, attempt: null };
+    var saved = null;
+    try { saved = JSON.parse(localStorage.getItem(UNITS_KEY)); } catch (e) { saved = null; }
+    if (!saved || typeof saved !== 'object') return st;
+    if (saved.scores && typeof saved.scores === 'object') {
+      Object.keys(saved.scores).forEach(function (key) {
+        var rec = saved.scores[key];
+        var u = unitByKey[key];
+        // A score only counts for the exact questions it was earned on.
+        if (u && rec && rec.fp === u.fp && Number.isInteger(rec.best) && rec.best >= 0 && rec.best <= u.ids.length) {
+          st.scores[key] = { best: rec.best, size: u.ids.length, fp: u.fp };
+        } else {
+          unitsDropped = true;
+        }
+      });
+    }
+    if (saved.attempt) {
+      st.attempt = sanitizeAttempt(saved.attempt);
+      if (!st.attempt) unitsDropped = true;
+    }
+    return st;
+  }
+
+  function saveUnits() {
+    try { localStorage.setItem(UNITS_KEY, JSON.stringify(ust)); } catch (e) { /* storage unavailable: keep going in memory */ }
+  }
+
+  var ust = loadUnits();
+  if (unitsDropped) saveUnits();   // Clear out scores earned on questions that have since changed.
+
+  function scoreOf(u) { return ust.scores[u.key] || null; }
+  function isPerfect(u) { var s = scoreOf(u); return !!s && s.best === u.ids.length; }
+  function perfectCount(units) { return units.filter(isPerfect).length; }
+
+  function isUnlocked(u) {
+    if (!UNLOCK_IN_ORDER) return true;
+    var flat = u.course.flat;
+    for (var i = 0; i < u.index; i++) {
+      if (!isPerfect(flat[i])) return false;
+    }
+    return true;
+  }
+
+  // The unit in progress in this course, otherwise its first unit without a perfect score.
+  function continueTarget(course) {
+    var current = ust.attempt && unitByKey[ust.attempt.unit];
+    if (current && current.course === course) return current;
+    for (var i = 0; i < course.flat.length; i++) {
+      if (!isPerfect(course.flat[i])) return course.flat[i];
+    }
+    return null;
+  }
+
+  function where(u) {
+    return u.course.name + DOT + 'Section ' + u.section.n + DOT + 'Unit ' + u.n;
+  }
+
+  // ---- All questions mode: state and storage --------------------------------
 
   function sanitizeRun(r) {
     var oldPos = Math.max(0, Math.min(r.pos | 0, r.ids.length));
@@ -480,7 +776,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
   }
 
   function load() {
-    var state = { settings: { set: 'basic', order: 'sequential' }, run: null, stats: freshStats() };
+    var state = { settings: { set: 'basic', order: 'sequential' }, run: null };
     var saved = null;
     try { saved = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { saved = null; }
     if (!saved || typeof saved !== 'object') return state;
@@ -488,14 +784,8 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       if (SET_LABEL[saved.settings.set]) state.settings.set = saved.settings.set;
       if (ORDER_LABEL[saved.settings.order]) state.settings.order = saved.settings.order;
     }
-    if (saved.stats) {
-      ['basic', 'advanced'].forEach(function (b) {
-        var t = saved.stats[b];
-        if (t && Number.isFinite(t.answered) && Number.isFinite(t.correct)) {
-          state.stats[b] = { answered: Math.max(0, t.answered), correct: Math.max(0, t.correct) };
-        }
-      });
-    }
+    // The accuracy meter is switched off; its old tallies are kept untouched.
+    if (saved.stats) state.stats = saved.stats;
     if (saved.run && Array.isArray(saved.run.ids)) state.run = sanitizeRun(saved.run);
     return state;
   }
@@ -505,11 +795,8 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
   }
 
   var state = load();
-  var view = 'home';
 
   function runActive() { return !!(state.run && state.run.pos < state.run.ids.length); }
-
-  // ---- Formatting ----------------------------------------------------------
 
   function pct(correct, answered) {
     return answered ? (correct / answered * 100).toFixed(1) + '%' : DASH;
@@ -523,69 +810,466 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     return SET_LABEL[r.set] + DOT + ORDER_LABEL[r.order];
   }
 
-  // ---- Accuracy meter ----------------------------------------------------
+  // ---- Navigation ----------------------------------------------------------
+  // nav is the stack of screens. Each history entry carries a copy of it, so the
+  // phone's back gesture and a reload both land on the right screen.
 
-  var segs = $('acc-segments');
-  for (var s = 0; s < 20; s++) segs.appendChild(document.createElement('span'));
+  var nav = [];
+  var view = null;
+  var historyOK = true;
+  var VIEWS = ['home', 'sections', 'units', 'play', 'result', 'runsetup', 'card', 'done'];
 
-  function renderStats() {
-    var b = state.stats.basic;
-    var a = state.stats.advanced;
-    var answered = b.answered + a.answered;
-    var correct = b.correct + a.correct;
-    $('acc-pct').textContent = pct(correct, answered);
-    $('acc-count').textContent = scoreLine(correct, answered);
-    var value = answered ? correct / answered * 100 : 0;
-    var lit = Math.round(value / 5);
-    Array.prototype.forEach.call(segs.children, function (el, i) { el.classList.toggle('on', i < lit); });
-    segs.setAttribute('aria-valuenow', value.toFixed(1));
-    segs.setAttribute('aria-valuetext', answered ? pct(correct, answered) + ', ' + scoreLine(correct, answered) : 'No answers yet');
-    $('acc-basic').textContent = b.answered ? b.correct + ' of ' + b.answered + DOT + pct(b.correct, b.answered) : DASH;
-    $('acc-advanced').textContent = a.answered ? a.correct + ' of ' + a.answered + DOT + pct(a.correct, a.answered) : DASH;
-    $('reset-acc').disabled = !answered;
+  function syncHistory(method) {
+    if (!historyOK) return;
+    try { history[method]({ app: 'flashcards', nav: nav.slice() }, ''); } catch (e) { historyOK = false; }
   }
 
-  $('reset-acc').addEventListener('click', function () {
-    var n = state.stats.basic.answered + state.stats.advanced.answered;
-    $('reset-confirm-text').textContent = 'Clear ' + n + ' recorded answer' + (n === 1 ? '' : 's') + ' and start your accuracy from zero? Your place in the current run is kept.';
-    $('reset-confirm').hidden = false;
-    $('reset-no').focus();
-  });
-  $('reset-no').addEventListener('click', function () {
-    $('reset-confirm').hidden = true;
-    $('reset-acc').focus();
-  });
-  $('reset-yes').addEventListener('click', function () {
-    state.stats = freshStats();
-    save();
-    $('reset-confirm').hidden = true;
-    renderStats();
-  });
+  function top() { return nav[nav.length - 1] || { v: 'home' }; }
 
-  // ---- Views ---------------------------------------------------------------
+  function push(st) { nav.push(st); syncHistory('pushState'); render(); }
 
-  function show(name) {
-    view = name;
-    $('view-home').hidden = name !== 'home';
-    $('view-card').hidden = name !== 'card';
-    $('view-done').hidden = name !== 'done';
-    if (name === 'home') renderHome();
-    if (name === 'card') renderCard();
-    if (name === 'done') renderDone();
+  function replace(st) {
+    if (nav.length) nav[nav.length - 1] = st; else nav.push(st);
+    syncHistory('replaceState');
+    render();
   }
 
-  // Home
+  function sameScreen(a, b) {
+    return !!a && !!b && a.v === b.v && a.c === b.c && a.s === b.s;
+  }
+
+  // Back buttons land on the screen their label names. When that screen is the
+  // one underneath, step back to it so the phone's back gesture stays in step.
+  function backTo(target) {
+    if (sameScreen(nav[nav.length - 2], target)) {
+      if (historyOK) { history.back(); return; }
+      nav.pop();
+      render();
+      return;
+    }
+    replace(target);
+  }
+
+  window.addEventListener('popstate', function (e) {
+    var h = e.state;
+    nav = h && h.app === 'flashcards' && Array.isArray(h.nav) && h.nav.length ? h.nav.slice() : [{ v: 'home' }];
+    render();
+  });
+
+  // Falls back to a screen that exists when the saved one no longer does.
+  function guard(st) {
+    switch (st && st.v) {
+      case 'home': return st;
+      case 'sections': return courses[st.c] ? st : { v: 'home' };
+      case 'units': return courses[st.c] && courses[st.c].sections[st.s] ? st : { v: 'home' };
+      case 'play': return ust.attempt ? st : { v: 'home' };
+      case 'result': return lastResult ? st : { v: 'home' };
+      case 'runsetup': return st;
+      case 'card': return runActive() ? st : { v: 'runsetup' };
+      case 'done': return state.run && !runActive() ? st : { v: 'runsetup' };
+      default: return { v: 'home' };
+    }
+  }
+
+  function render() {
+    var st = top();
+    var fixed = guard(st);
+    if (fixed !== st) {
+      nav[nav.length - 1] = fixed;
+      syncHistory('replaceState');
+      st = fixed;
+    }
+    view = st.v;
+    VIEWS.forEach(function (name) { $('view-' + name).hidden = name !== view; });
+    $('leave-confirm').hidden = true;
+    if (view === 'home') renderHome();
+    if (view === 'sections') renderSections(courses[st.c]);
+    if (view === 'units') renderUnits(courses[st.c], courses[st.c].sections[st.s]);
+    if (view === 'play') { playSel = null; renderPlay(); }
+    if (view === 'result') renderResult();
+    if (view === 'runsetup') renderRunSetup();
+    if (view === 'card') { runSel = null; renderCard(); }
+    if (view === 'done') renderDone();
+    renderDock();
+    window.scrollTo(0, 0);
+  }
+
+  // ---- Pinned action dock --------------------------------------------------
+
+  function setDock(label, sub, disabled) {
+    var dock = $('dock');
+    if (label === null) {
+      dock.hidden = true;
+      document.body.classList.remove('has-dock');
+      return;
+    }
+    dock.hidden = false;
+    document.body.classList.add('has-dock');
+    $('dock-label').textContent = label;
+    $('dock-sub').textContent = sub || '';
+    $('dock-sub').hidden = !sub;
+    $('dock-btn').disabled = !!disabled;
+  }
+
+  function renderDock() {
+    if (view === 'sections' || view === 'units') {
+      var target = continueTarget(courses[top().c]);
+      if (target) setDock('Continue', 'Section ' + target.section.n + DOT + 'Unit ' + target.n, false);
+      else setDock('Course complete', null, true);
+    } else if (view === 'play') {
+      var a = ust.attempt;
+      if (a.choice === null) setDock('Check', null, playSel === null);
+      else setDock(playIsLastCard() ? 'Finish unit' : 'Next', null, false);
+    } else if (view === 'card') {
+      var r = state.run;
+      if (r.choice === null) setDock('Check', null, runSel === null);
+      else setDock(r.pos + 1 >= r.ids.length ? 'Finish run' : 'Next question', null, false);
+    } else {
+      setDock(null);
+    }
+  }
+
+  $('dock-btn').addEventListener('click', function () {
+    if (view === 'sections' || view === 'units') {
+      var target = continueTarget(courses[top().c]);
+      if (target) openUnit(target, false);
+    } else if (view === 'play') {
+      if (ust.attempt.choice === null) checkPlay(); else nextPlay();
+    } else if (view === 'card') {
+      if (state.run.choice === null) checkRun(); else nextRun();
+    }
+  });
+
+  // ---- Shared answer card --------------------------------------------------
+
+  function renderOptions(container, q, selected, choice, onSelect) {
+    container.textContent = '';
+    var checked = choice !== null;
+    q.options.forEach(function (text, i) {
+      var btn = el('button', 'opt');
+      btn.type = 'button';
+      btn.dataset.i = i;
+      btn.appendChild(el('span', 'key', LETTERS[i]));
+      btn.appendChild(el('span', 'txt', text));
+      if (checked) {
+        btn.disabled = true;
+        var mark = null;
+        if (i === q.answer) {
+          btn.classList.add('is-correct');
+          mark = choice === i ? '\u2713 Correct' : '\u2713 Correct answer';
+        } else if (i === choice) {
+          btn.classList.add('is-wrong');
+          mark = '\u2717 Incorrect';
+        } else {
+          btn.classList.add('is-dim');
+        }
+        if (mark) btn.appendChild(el('span', 'mark', mark));
+      } else {
+        btn.setAttribute('aria-pressed', i === selected ? 'true' : 'false');
+        if (i === selected) btn.classList.add('is-selected');
+        btn.addEventListener('click', function () { onSelect(i); });
+      }
+      container.appendChild(btn);
+    });
+  }
+
+  function markSelected(container, selected) {
+    Array.prototype.forEach.call(container.children, function (btn, i) {
+      btn.classList.toggle('is-selected', i === selected);
+      btn.setAttribute('aria-pressed', i === selected ? 'true' : 'false');
+    });
+  }
+
+  function renderVerdict(p, q, choice) {
+    if (choice === null) {
+      p.textContent = '';
+      p.className = 'verdict';
+      return;
+    }
+    var ok = choice === q.answer;
+    p.textContent = ok ? 'Correct.' : 'Incorrect. The answer is ' + LETTERS[q.answer] + '.';
+    p.className = 'verdict ' + (ok ? 'good' : 'bad');
+  }
+
+  function focusQuestion(id) {
+    $(id).focus({ preventScroll: true });
+    window.scrollTo(0, 0);
+  }
+
+  // ---- Home ----------------------------------------------------------------
+
+  function renderHome() {
+    ['basic', 'advanced'].forEach(function (c) {
+      var course = courses[c];
+      var card = $('course-' + c);
+      var total = course.flat.length;
+      var done = perfectCount(course.flat);
+      card.querySelector('.course-sub').textContent = course.name + ' Qualification' + DOT + course.sections.length + ' sections' + DOT + total + ' units';
+      card.querySelector('.bar span').style.width = (total ? done / total * 100 : 0) + '%';
+      card.querySelector('.course-count').textContent = done + ' of ' + total + ' units perfect';
+    });
+  }
+
+  $('course-basic').addEventListener('click', function () { push({ v: 'sections', c: 'basic' }); });
+  $('course-advanced').addEventListener('click', function () { push({ v: 'sections', c: 'advanced' }); });
+  $('to-runsetup').addEventListener('click', function () { push({ v: 'runsetup' }); });
+
+  // ---- Sections ------------------------------------------------------------
+
+  function renderSections(course) {
+    var total = course.flat.length;
+    var done = perfectCount(course.flat);
+    $('sections-title').textContent = course.name;
+    $('sections-sub').textContent = done + ' of ' + total + ' units perfect';
+    $('sections-bar').style.width = (total ? done / total * 100 : 0) + '%';
+    var list = $('sections-list');
+    list.textContent = '';
+    course.sections.forEach(function (sec, i) {
+      var perfect = perfectCount(sec.units);
+      var locked = !isUnlocked(sec.units[0]);
+      var row = el('button', 'row' + (locked ? ' is-locked' : ''));
+      row.type = 'button';
+      row.appendChild(el('span', 'row-title', 'Section ' + sec.n));
+      row.appendChild(el('span', 'row-sub', perfect + ' of ' + sec.units.length + ' units perfect'));
+      row.appendChild(barEl(sec.units.length ? perfect / sec.units.length : 0));
+      var side = el('span', 'row-side');
+      if (locked) {
+        var lock = el('span', 'lock');
+        lock.innerHTML = LOCK_SVG;
+        lock.appendChild(el('span', 'sr-only', 'Locked'));
+        side.appendChild(lock);
+      } else if (perfect === sec.units.length) {
+        side.appendChild(el('span', 'status-perfect', '\u2713 Perfect'));
+      }
+      side.appendChild(el('span', 'chev', '\u203a'));
+      side.lastChild.setAttribute('aria-hidden', 'true');
+      row.appendChild(side);
+      row.addEventListener('click', function () { push({ v: 'units', c: course.key, s: i }); });
+      list.appendChild(row);
+    });
+  }
+
+  $('sections-back').addEventListener('click', function () { backTo({ v: 'home' }); });
+
+  // ---- Units ---------------------------------------------------------------
+
+  function unitStatus(u) {
+    if (!isUnlocked(u)) return { text: 'Locked', cls: '' };
+    if (ust.attempt && ust.attempt.unit === u.key) return { text: 'In progress', cls: 'status-progress' };
+    var s = scoreOf(u);
+    if (!s) return { text: 'Not started', cls: '' };
+    if (s.best === u.ids.length) return { text: '\u2713 Perfect', cls: 'status-perfect' };
+    return { text: 'Best ' + s.best + ' of ' + u.ids.length, cls: '' };
+  }
+
+  function renderUnits(course, sec) {
+    var perfect = perfectCount(sec.units);
+    $('units-course').textContent = course.name;
+    $('units-title').textContent = 'Section ' + sec.n;
+    $('units-sub').textContent = perfect + ' of ' + sec.units.length + ' units perfect';
+    $('units-bar').style.width = (sec.units.length ? perfect / sec.units.length * 100 : 0) + '%';
+    var list = $('units-list');
+    list.textContent = '';
+    sec.units.forEach(function (u) {
+      var locked = !isUnlocked(u);
+      var status = unitStatus(u);
+      var row = el('button', 'row' + (locked ? ' is-locked' : ''));
+      row.type = 'button';
+      row.disabled = locked;
+      row.appendChild(el('span', 'row-title', 'Unit ' + u.n));
+      row.appendChild(el('span', 'row-sub', u.ids.length + ' questions'));
+      var side = el('span', 'row-side');
+      if (locked) {
+        var lock = el('span', 'lock');
+        lock.innerHTML = LOCK_SVG;
+        side.appendChild(lock);
+        side.appendChild(el('span', '', 'Locked'));
+      } else {
+        side.appendChild(el('span', status.cls, status.text));
+        side.appendChild(el('span', 'chev', '\u203a'));
+        side.lastChild.setAttribute('aria-hidden', 'true');
+      }
+      row.appendChild(side);
+      if (!locked) row.addEventListener('click', function () { openUnit(u, false); });
+      list.appendChild(row);
+    });
+  }
+
+  $('units-back').addEventListener('click', function () { backTo({ v: 'sections', c: top().c }); });
+
+  // ---- Playing a unit ------------------------------------------------------
+  // Questions come in ISED order. A miss comes back once after the last question;
+  // only first-try answers count toward the score.
+
+  var playSel = null;
+  var lastResult = null;
+
+  function openUnit(u, replaceScreen) {
+    if (!isUnlocked(u)) return;
+    if (!ust.attempt || ust.attempt.unit !== u.key) {
+      ust.attempt = { unit: u.key, fp: u.fp, phase: 1, pos: 0, missed: [], firstCorrect: 0, choice: null };
+      saveUnits();
+    }
+    if (replaceScreen) replace({ v: 'play' }); else push({ v: 'play' });
+    focusQuestion('play-text');
+  }
+
+  function playUnit() { return unitByKey[ust.attempt.unit]; }
+  function playList() { return ust.attempt.phase === 1 ? playUnit().ids : ust.attempt.missed; }
+  function playQuestion() { return byId[playList()[ust.attempt.pos]]; }
+
+  function playIsLastCard() {
+    var a = ust.attempt;
+    if (a.pos + 1 < playList().length) return false;
+    return a.phase === 2 || a.missed.length === 0;
+  }
+
+  function renderPlay() {
+    var a = ust.attempt;
+    var u = playUnit();
+    var q = playQuestion();
+    var fill = (a.pos + (a.choice === null ? 0 : 1)) / playList().length * 100;
+    var bar = $('play-bar');
+    $('play-where').textContent = where(u);
+    $('play-phase').hidden = a.phase !== 2;
+    bar.classList.toggle('is-retry', a.phase === 2);
+    bar.firstElementChild.style.width = fill + '%';
+    bar.setAttribute('aria-valuenow', String(Math.round(fill)));
+    $('play-text').textContent = q.q;
+    renderOptions($('play-opts'), q, playSel, a.choice, selectPlay);
+    renderVerdict($('play-verdict'), q, a.choice);
+    renderDock();
+  }
+
+  function selectPlay(i) {
+    if (view !== 'play' || ust.attempt.choice !== null) return;
+    playSel = i;
+    markSelected($('play-opts'), i);
+    renderDock();
+  }
+
+  function checkPlay() {
+    var a = ust.attempt;
+    if (view !== 'play' || a.choice !== null || playSel === null) return;
+    var q = playQuestion();
+    a.choice = playSel;
+    if (a.phase === 1) {
+      if (a.choice === q.answer) a.firstCorrect++;
+      else a.missed.push(q.id);
+    }
+    playSel = null;
+    saveUnits();
+    renderPlay();
+    $('dock-btn').focus({ preventScroll: true });
+    $('play-verdict').scrollIntoView({ block: 'nearest' });
+  }
+
+  function nextPlay() {
+    var a = ust.attempt;
+    if (view !== 'play' || a.choice === null) return;
+    var u = playUnit();
+    a.pos++;
+    a.choice = null;
+    playSel = null;
+    if (a.phase === 1 && a.pos >= u.ids.length) {
+      if (!a.missed.length) return finishUnit();
+      a.phase = 2;
+      a.pos = 0;
+      // Start the second-try bar from empty without animating it backwards.
+      var fill = $('play-bar').firstElementChild;
+      fill.style.transition = 'none';
+      fill.style.width = '0%';
+      void fill.offsetWidth;
+      fill.style.transition = '';
+    } else if (a.phase === 2 && a.pos >= a.missed.length) {
+      return finishUnit();
+    }
+    saveUnits();
+    renderPlay();
+    focusQuestion('play-text');
+  }
+
+  function finishUnit() {
+    var a = ust.attempt;
+    var u = playUnit();
+    var prev = scoreOf(u);
+    var score = a.firstCorrect;
+    if (!prev || score > prev.best) ust.scores[u.key] = { best: score, size: u.ids.length, fp: u.fp };
+    lastResult = { unit: u.key, score: score };
+    ust.attempt = null;
+    saveUnits();
+    replace({ v: 'result' });
+    $('result-title').focus({ preventScroll: true });
+  }
+
+  $('play-leave').addEventListener('click', function () {
+    $('leave-confirm').hidden = false;
+    $('leave-no').focus();
+  });
+  $('leave-no').addEventListener('click', function () {
+    $('leave-confirm').hidden = true;
+    $('play-leave').focus();
+  });
+  $('leave-yes').addEventListener('click', function () {
+    var u = playUnit();
+    ust.attempt = null;
+    saveUnits();
+    backToUnits(u);
+  });
+
+  // Lands on the unit's own section list, whichever screen the unit was started from.
+  function backToUnits(u) {
+    backTo({ v: 'units', c: u.course.key, s: u.section.n - 1 });
+  }
+
+  // ---- Unit result ---------------------------------------------------------
+
+  function renderResult() {
+    var u = unitByKey[lastResult.unit];
+    var size = u.ids.length;
+    var perfect = lastResult.score === size;
+    var best = scoreOf(u);
+    var next = u.course.flat[u.index + 1] || null;
+    var nextOpen = !!next && isUnlocked(next);
+    $('result-where').textContent = where(u);
+    $('result-title').textContent = perfect ? 'Perfect!' : 'Unit complete';
+    $('result-title').classList.toggle('result-title-perfect', perfect);
+    $('result-score').textContent = lastResult.score + ' of ' + size;
+    $('result-best').textContent = best ? 'Best score: ' + best.best + ' of ' + size : '';
+    $('result-next').hidden = !next;
+    $('result-next').disabled = !nextOpen;
+    $('result-again').className = 'btn' + (perfect && nextOpen ? '' : ' primary');
+    $('result-next').className = 'btn' + (perfect && nextOpen ? ' primary' : '');
+    var note = '';
+    if (!next) note = 'That was the last unit in ' + u.course.name + '.';
+    else if (!nextOpen) note = 'The next unit unlocks when every unit before it has a perfect score.';
+    $('result-note').textContent = note;
+    $('result-note').hidden = !note;
+  }
+
+  $('result-again').addEventListener('click', function () { openUnit(unitByKey[lastResult.unit], true); });
+  $('result-next').addEventListener('click', function () {
+    var u = unitByKey[lastResult.unit];
+    var next = u.course.flat[u.index + 1];
+    if (next) openUnit(next, true);
+  });
+  $('result-back').addEventListener('click', function () { backToUnits(unitByKey[lastResult.unit]); });
+
+  // ---- All questions mode --------------------------------------------------
+
+  var runSel = null;
+
   $('count-basic').textContent = counts.basic + ' questions';
   $('count-advanced').textContent = counts.advanced + ' questions';
   $('count-both').textContent = counts.both + ' questions';
 
-  function renderHome() {
+  function renderRunSetup() {
     $('set-' + state.settings.set).checked = true;
     $('order-' + state.settings.order).checked = true;
     $('replace-confirm').hidden = true;
     var active = runActive();
     $('resume').hidden = !active;
-    $('home-title').textContent = active ? 'Or start a new run' : 'Start a run';
+    $('runsetup-title').textContent = active ? 'Or start a new run' : 'All questions';
     if (active) {
       $('resume-pos').textContent = 'Question ' + (state.run.pos + 1) + ' of ' + state.run.ids.length;
       $('resume-desc').textContent = runDesc(state.run) + DOT + scoreLine(state.run.correct, state.run.answered) + ' this run';
@@ -616,13 +1300,13 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     if (order === 'random') shuffle(ids);
     state.run = { set: set, order: order, ids: ids, pos: 0, choice: null, answered: 0, correct: 0 };
     save();
-    show('card');
-    focusQuestion();
+    push({ v: 'card' });
+    focusQuestion('q-text');
   }
 
   $('start-btn').addEventListener('click', function () {
     if (runActive()) {
-      $('replace-confirm-text').textContent = 'This replaces your current run (' + runDesc(state.run) + ', question ' + (state.run.pos + 1) + ' of ' + state.run.ids.length + '). Your accuracy record is kept.';
+      $('replace-confirm-text').textContent = 'This replaces your current run (' + runDesc(state.run) + ', question ' + (state.run.pos + 1) + ' of ' + state.run.ids.length + ').';
       $('replace-confirm').hidden = false;
       $('replace-no').focus();
       return;
@@ -634,11 +1318,11 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     $('replace-confirm').hidden = true;
     $('start-btn').focus();
   });
-  $('resume-btn').addEventListener('click', function () { show('card'); focusQuestion(); });
-  $('to-home').addEventListener('click', function () { show('home'); });
-  $('again-btn').addEventListener('click', function () { show('home'); });
+  $('resume-btn').addEventListener('click', function () { push({ v: 'card' }); focusQuestion('q-text'); });
+  $('runsetup-back').addEventListener('click', function () { backTo({ v: 'home' }); });
+  $('to-runsetup-from-card').addEventListener('click', function () { backTo({ v: 'runsetup' }); });
+  $('again-btn').addEventListener('click', function () { backTo({ v: 'runsetup' }); });
 
-  // Flashcard
   function currentQuestion() { return byId[state.run.ids[state.run.pos]]; }
 
   function renderCard() {
@@ -646,137 +1330,83 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     var q = currentQuestion();
     var total = r.ids.length;
     $('q-bank').textContent = q.bank === 'basic' ? 'Basic' : 'Advanced';
-    $('q-id').textContent = q.id;
     $('q-pos').textContent = 'Question ' + (r.pos + 1) + ' of ' + total;
     $('q-run').textContent = runDesc(r);
     $('q-bar').style.width = ((r.pos + (r.choice === null ? 0 : 1)) / total * 100) + '%';
     $('q-text').textContent = q.q;
-
-    var answered = r.choice !== null;
-    var opts = $('opts');
-    opts.textContent = '';
-    q.options.forEach(function (text, i) {
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'opt';
-      btn.dataset.i = i;
-      var key = document.createElement('span');
-      key.className = 'key';
-      key.textContent = LETTERS[i];
-      var txt = document.createElement('span');
-      txt.className = 'txt';
-      txt.textContent = text;
-      btn.appendChild(key);
-      btn.appendChild(txt);
-      if (answered) {
-        btn.disabled = true;
-        var mark = null;
-        if (i === q.answer) {
-          btn.classList.add('is-correct');
-          mark = r.choice === i ? '\u2713 Correct' : '\u2713 Correct answer';
-        } else if (i === r.choice) {
-          btn.classList.add('is-wrong');
-          mark = '\u2717 Incorrect';
-        } else {
-          btn.classList.add('is-dim');
-        }
-        if (mark) {
-          var m = document.createElement('span');
-          m.className = 'mark';
-          m.textContent = mark;
-          btn.appendChild(m);
-        }
-      } else {
-        btn.addEventListener('click', function () { answer(i); });
-      }
-      opts.appendChild(btn);
-    });
-
-    var verdict = $('verdict');
-    var next = $('next');
-    if (answered) {
-      var ok = r.choice === q.answer;
-      verdict.textContent = ok ? 'Correct.' : 'Incorrect. The answer is ' + LETTERS[q.answer] + '.';
-      verdict.className = 'verdict ' + (ok ? 'good' : 'bad');
-      next.textContent = r.pos + 1 >= total ? 'Finish run' : 'Next question';
-      next.hidden = false;
-    } else {
-      verdict.textContent = '';
-      verdict.className = 'verdict';
-      next.hidden = true;
-    }
+    renderOptions($('q-opts'), q, runSel, r.choice, selectRun);
+    renderVerdict($('q-verdict'), q, r.choice);
+    renderDock();
   }
 
-  function focusQuestion() {
-    $('q-text').focus({ preventScroll: true });
-    $('view-card').scrollIntoView({ block: 'start' });
+  function selectRun(i) {
+    if (view !== 'card' || state.run.choice !== null) return;
+    runSel = i;
+    markSelected($('q-opts'), i);
+    renderDock();
   }
 
-  function answer(i) {
+  function checkRun() {
     var r = state.run;
-    if (view !== 'card' || !r || r.choice !== null) return;
-    var q = currentQuestion();
-    var ok = i === q.answer;
-    r.choice = i;
+    if (view !== 'card' || r.choice !== null || runSel === null) return;
+    r.choice = runSel;
     r.answered++;
-    if (ok) r.correct++;
-    var t = state.stats[q.bank];
-    t.answered++;
-    if (ok) t.correct++;
+    if (r.choice === currentQuestion().answer) r.correct++;
+    runSel = null;
     save();
     renderCard();
-    renderStats();
-    var next = $('next');
-    next.focus({ preventScroll: true });
-    next.scrollIntoView({ block: 'nearest' });
+    $('dock-btn').focus({ preventScroll: true });
+    $('q-verdict').scrollIntoView({ block: 'nearest' });
   }
 
-  function nextQuestion() {
+  function nextRun() {
     var r = state.run;
-    if (view !== 'card' || !r || r.choice === null) return;
+    if (view !== 'card' || r.choice === null) return;
     r.pos++;
     r.choice = null;
+    runSel = null;
     save();
     if (r.pos >= r.ids.length) {
-      show('done');
+      replace({ v: 'done' });
       $('again-btn').focus({ preventScroll: true });
       return;
     }
     renderCard();
-    focusQuestion();
+    focusQuestion('q-text');
   }
 
-  $('next').addEventListener('click', nextQuestion);
-
-  // Done
   function renderDone() {
     var r = state.run;
-    if (!r) { show('home'); return; }
     $('done-title').textContent = 'All ' + r.ids.length + ' ' + SET_LABEL[r.set] + ' questions answered';
     $('done-pct').textContent = pct(r.correct, r.answered);
     $('done-count').textContent = scoreLine(r.correct, r.answered) + ' this run';
   }
 
-  // Keyboard: A-D or 1-4 answer, Enter or Right arrow moves on.
+  // ---- Keyboard: A-D or 1-4 choose, Enter checks, Enter or Right arrow moves on
+
   var KEY_INDEX = { a: 0, b: 1, c: 2, d: 3, '1': 0, '2': 1, '3': 2, '4': 3 };
   document.addEventListener('keydown', function (e) {
-    if (view !== 'card' || e.metaKey || e.ctrlKey || e.altKey) return;
+    if ((view !== 'play' && view !== 'card') || e.metaKey || e.ctrlKey || e.altKey) return;
     var target = e.target;
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
-    var r = state.run;
-    if (r.choice === null) {
-      var idx = KEY_INDEX[e.key.toLowerCase()];
-      if (idx !== undefined) {
-        e.preventDefault();
-        answer(idx);
-      }
+    var checked = view === 'play' ? ust.attempt.choice !== null : state.run.choice !== null;
+    var idx = KEY_INDEX[e.key.toLowerCase()];
+    if (!checked && idx !== undefined) {
+      e.preventDefault();
+      if (view === 'play') selectPlay(idx); else selectRun(idx);
       return;
     }
-    if (e.key === 'Enter' || e.key === 'ArrowRight') {
-      var onOtherButton = target && target.closest && target.closest('button') && target.id !== 'next';
-      if (e.key === 'Enter' && onOtherButton) return;
+    if (e.key === 'Enter') {
+      var btn = target && target.closest ? target.closest('button') : null;
+      // Let Enter work normally on other buttons, such as Leave unit.
+      if (btn && btn.id !== 'dock-btn' && !btn.classList.contains('opt')) return;
       e.preventDefault();
-      nextQuestion();
+      if (!$('dock-btn').disabled) $('dock-btn').click();
+      return;
+    }
+    if (e.key === 'ArrowRight' && checked) {
+      e.preventDefault();
+      $('dock-btn').click();
     }
   });
 
@@ -787,9 +1417,24 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     $('source-note').textContent = 'Questions and answers from the ISED Basic (' + src.basic.date + ') and Advanced (' + src.advanced.date + ') Qualification question banks for the Amateur Radio Operator Certificate.';
   }
 
-  renderStats();
-  if (runActive()) show('card');
-  else if (state.run) show('done');
-  else show('home');
+  var restored = null;
+  try { restored = history.state; } catch (e) { historyOK = false; }
+  if (restored && restored.app === 'flashcards' && Array.isArray(restored.nav) && restored.nav.length) {
+    // A reload: stay on the same screen.
+    nav = restored.nav.slice();
+    render();
+  } else {
+    // A fresh visit opens the unit in progress, with Courses, Sections and Units behind it.
+    var entries = [{ v: 'home' }];
+    if (ust.attempt) {
+      var u = playUnit();
+      entries.push({ v: 'sections', c: u.course.key }, { v: 'units', c: u.course.key, s: u.section.n - 1 }, { v: 'play' });
+    }
+    entries.forEach(function (st, i) {
+      nav.push(st);
+      syncHistory(i === 0 ? 'replaceState' : 'pushState');
+    });
+    render();
+  }
 })();
 </script>
