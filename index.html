@@ -414,12 +414,10 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
         <span class="course-count"></span>
       </button>
     </div>
-    <div class="secondary">
+    <!-- All questions mode is hidden for now; remove "hidden" to bring the link back. -->
+    <div class="secondary" hidden>
       <button class="link-btn" id="to-runsetup" type="button">All questions, in order or random</button>
     </div>
-    <footer class="foot">
-      <p id="source-note">Questions from the ISED amateur radio question banks.</p>
-    </footer>
   </section>
 
   <section class="view" id="view-sections" hidden aria-labelledby="sections-title">
@@ -465,7 +463,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
 
   <section class="panel" id="view-result" hidden aria-labelledby="result-title">
     <span class="eyebrow" id="result-where"></span>
-    <h2 id="result-title" tabindex="-1">Unit complete</h2>
+    <h2 id="result-title" tabindex="-1">Unit result</h2>
     <div class="score">
       <span class="score-pct" id="result-score"></span>
       <span class="score-count">right on the first try</span>
@@ -564,9 +562,9 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
   'use strict';
 
   // Unlock-as-you-go. When true, a unit opens only after every earlier unit in
-  // its course has a perfect score; the first unit of each course is always open.
-  // Built and tested, switched off for now.
-  var UNLOCK_IN_ORDER = false;
+  // its course is completed (a perfect score); the first unit of each course is
+  // always open. Set to false to open every unit.
+  var UNLOCK_IN_ORDER = true;
 
   var STORE_KEY = 'amateurRadioStudy.v1';        // All questions mode
   var UNITS_KEY = 'amateurRadioStudy.units.v1';  // Unit scores and the unit in progress
@@ -719,6 +717,11 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
 
   var ust = loadUnits();
   if (unitsDropped) saveUnits();   // Clear out scores earned on questions that have since changed.
+  // A unit started before it was locked can't be resumed.
+  if (ust.attempt && !isUnlocked(unitByKey[ust.attempt.unit])) {
+    ust.attempt = null;
+    saveUnits();
+  }
 
   function scoreOf(u) { return ust.scores[u.key] || null; }
   function isPerfect(u) { var s = scoreOf(u); return !!s && s.best === u.ids.length; }
@@ -733,7 +736,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     return true;
   }
 
-  // The unit in progress in this course, otherwise its first unit without a perfect score.
+  // The unit in progress in this course, otherwise its first unit not yet completed.
   function continueTarget(course) {
     var current = ust.attempt && unitByKey[ust.attempt.unit];
     if (current && current.course === course) return current;
@@ -915,7 +918,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     if (view === 'sections' || view === 'units') {
       var target = continueTarget(courses[top().c]);
       if (target) setDock('Continue', 'Section ' + target.section.n + DOT + 'Unit ' + target.n, false);
-      else setDock('Course complete', null, true);
+      else setDock('Course completed', null, true);
     } else if (view === 'play') {
       var a = ust.attempt;
       if (a.choice === null) setDock('Check', null, playSel === null);
@@ -1006,7 +1009,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       var done = perfectCount(course.flat);
       card.querySelector('.course-sub').textContent = course.name + ' Qualification' + DOT + course.sections.length + ' sections' + DOT + total + ' units';
       card.querySelector('.bar span').style.width = (total ? done / total * 100 : 0) + '%';
-      card.querySelector('.course-count').textContent = done + ' of ' + total + ' units perfect';
+      card.querySelector('.course-count').textContent = done + ' of ' + total + ' units completed';
     });
   }
 
@@ -1020,7 +1023,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     var total = course.flat.length;
     var done = perfectCount(course.flat);
     $('sections-title').textContent = course.name;
-    $('sections-sub').textContent = done + ' of ' + total + ' units perfect';
+    $('sections-sub').textContent = done + ' of ' + total + ' units completed';
     $('sections-bar').style.width = (total ? done / total * 100 : 0) + '%';
     var list = $('sections-list');
     list.textContent = '';
@@ -1030,7 +1033,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       var row = el('button', 'row' + (locked ? ' is-locked' : ''));
       row.type = 'button';
       row.appendChild(el('span', 'row-title', 'Section ' + sec.n));
-      row.appendChild(el('span', 'row-sub', perfect + ' of ' + sec.units.length + ' units perfect'));
+      row.appendChild(el('span', 'row-sub', perfect + ' of ' + sec.units.length + ' units completed'));
       row.appendChild(barEl(sec.units.length ? perfect / sec.units.length : 0));
       var side = el('span', 'row-side');
       if (locked) {
@@ -1039,7 +1042,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
         lock.appendChild(el('span', 'sr-only', 'Locked'));
         side.appendChild(lock);
       } else if (perfect === sec.units.length) {
-        side.appendChild(el('span', 'status-perfect', '\u2713 Perfect'));
+        side.appendChild(el('span', 'status-perfect', '\u2713 Completed'));
       }
       side.appendChild(el('span', 'chev', '\u203a'));
       side.lastChild.setAttribute('aria-hidden', 'true');
@@ -1058,7 +1061,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     if (ust.attempt && ust.attempt.unit === u.key) return { text: 'In progress', cls: 'status-progress' };
     var s = scoreOf(u);
     if (!s) return { text: 'Not started', cls: '' };
-    if (s.best === u.ids.length) return { text: '\u2713 Perfect', cls: 'status-perfect' };
+    if (s.best === u.ids.length) return { text: '\u2713 Completed', cls: 'status-perfect' };
     return { text: 'Best ' + s.best + ' of ' + u.ids.length, cls: '' };
   }
 
@@ -1066,7 +1069,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     var perfect = perfectCount(sec.units);
     $('units-course').textContent = course.name;
     $('units-title').textContent = 'Section ' + sec.n;
-    $('units-sub').textContent = perfect + ' of ' + sec.units.length + ' units perfect';
+    $('units-sub').textContent = perfect + ' of ' + sec.units.length + ' units completed';
     $('units-bar').style.width = (sec.units.length ? perfect / sec.units.length * 100 : 0) + '%';
     var list = $('units-list');
     list.textContent = '';
@@ -1232,7 +1235,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     var next = u.course.flat[u.index + 1] || null;
     var nextOpen = !!next && isUnlocked(next);
     $('result-where').textContent = where(u);
-    $('result-title').textContent = perfect ? 'Perfect!' : 'Unit complete';
+    $('result-title').textContent = perfect ? 'Completed!' : 'Not completed yet';
     $('result-title').classList.toggle('result-title-perfect', perfect);
     $('result-score').textContent = lastResult.score + ' of ' + size;
     $('result-best').textContent = best ? 'Best score: ' + best.best + ' of ' + size : '';
@@ -1241,8 +1244,9 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     $('result-again').className = 'btn' + (perfect && nextOpen ? '' : ' primary');
     $('result-next').className = 'btn' + (perfect && nextOpen ? ' primary' : '');
     var note = '';
-    if (!next) note = 'That was the last unit in ' + u.course.name + '.';
-    else if (!nextOpen) note = 'The next unit unlocks when every unit before it has a perfect score.';
+    if (!perfect) note = 'Get every question right on the first try to complete this unit' + (UNLOCK_IN_ORDER && next ? ' and unlock the next one.' : '.');
+    else if (!next) note = 'That was the last unit in ' + u.course.name + '.';
+    else if (!nextOpen) note = 'The next unit unlocks when every unit before it is completed.';
     $('result-note').textContent = note;
     $('result-note').hidden = !note;
   }
@@ -1411,11 +1415,6 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
   });
 
   // ---- Boot ----------------------------------------------------------------
-
-  var src = bank.sources || {};
-  if (src.basic && src.advanced) {
-    $('source-note').textContent = 'Questions and answers from the ISED Basic (' + src.basic.date + ') and Advanced (' + src.advanced.date + ') Qualification question banks for the Amateur Radio Operator Certificate.';
-  }
 
   var restored = null;
   try { restored = history.state; } catch (e) { historyOK = false; }
