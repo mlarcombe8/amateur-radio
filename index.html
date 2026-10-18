@@ -249,11 +249,11 @@ button { font: inherit; color: inherit; }
 .unit-progress { display: block; width: 72px; height: 8px; border-radius: 4px; background: var(--seg-off); overflow: hidden; }
 .unit-progress span { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
 
-/* Pop-up floating over the unit list, just below the tapped unit */
+/* Pop-ups: floating over the unit list, or under the X and Hint buttons while playing */
 .rows-wrap { position: relative; }
+#unit-bubble { left: 12px; right: 12px; }
 .bubble {
   position: absolute;
-  left: 12px; right: 12px;
   z-index: 5;
   display: grid;
   gap: 10px;
@@ -267,7 +267,7 @@ button { font: inherit; color: inherit; }
 .bubble::before {
   content: "";
   position: absolute;
-  top: -6px; left: 30px;
+  top: -6px; left: var(--caret, 30px);
   width: 14px; height: 14px;
   border-radius: 2px;
   background: inherit;
@@ -277,6 +277,8 @@ button { font: inherit; color: inherit; }
 .bubble p { position: relative; margin: 0; font-weight: 700; }
 .bubble .btn { position: relative; width: 100%; min-height: 48px; font-size: var(--step-1); background: var(--bg); color: var(--ink); border-color: var(--bg); }
 .bubble.is-locked { background: var(--seg-off); color: var(--ink); }
+.bubble .bubble-name { font-size: var(--step-1); }
+.bubble .bubble-name + p { font-weight: 400; }
 @keyframes bubble-in { from { opacity: 0; transform: translateY(-4px); } }
 .status-perfect { color: var(--good); }
 .status-progress { color: var(--accent-ink); }
@@ -285,8 +287,42 @@ button { font: inherit; color: inherit; }
 
 /* Flashcard */
 .card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.play-head { display: grid; gap: 2px; min-width: 0; }
-.play-name { font-weight: 700; }
+
+/* Top of the play screen: leave (X), progress, hint */
+#view-play { position: relative; }
+.play-top { display: flex; align-items: center; gap: 12px; }
+.play-top .unit-bar { flex: 1 1 auto; }
+.icon-btn {
+  appearance: none;
+  flex: none;
+  display: grid; place-items: center;
+  width: 36px; height: 36px;
+  margin-left: -8px;
+  border: 0; border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.icon-btn:hover { color: var(--ink); }
+.icon-btn svg { display: block; width: 20px; height: 20px; }
+.hint-btn {
+  appearance: none;
+  flex: none;
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 34px;
+  padding: 4px 12px 4px 10px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface);
+  color: var(--accent-ink);
+  font-size: var(--step--1); font-weight: 700;
+  cursor: pointer;
+}
+.hint-btn:hover:not(:disabled) { border-color: var(--accent); }
+.hint-btn:disabled { opacity: .4; cursor: default; }
+.hint-btn svg { display: block; width: 16px; height: 16px; }
+.play-pop { width: min(300px, calc(100% - 24px)); }
+#leave-pop { left: 12px; }
+#hint-pop { right: 12px; }
 .tag {
   font-family: var(--font-display); font-weight: 600; font-size: var(--step--1);
   text-transform: uppercase; letter-spacing: .1em;
@@ -352,6 +388,8 @@ button { font: inherit; color: inherit; }
 .opt.is-wrong .key { border-color: var(--bad); background: var(--bad); color: var(--surface); }
 .opt.is-wrong .mark { color: var(--bad); }
 .opt.is-dim { opacity: .55; }
+.opt.is-removed { opacity: .35; }
+.opt.is-removed .txt { text-decoration: line-through; }
 
 .verdict { margin: 0; min-height: 1.5em; font-weight: 700; font-size: var(--step-1); }
 .verdict.good { color: var(--good); }
@@ -479,21 +517,19 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
   </section>
 
   <section class="panel" id="view-play" hidden aria-labelledby="play-text">
-    <div class="card-top">
-      <div class="play-head">
-        <span class="eyebrow" id="play-where"></span>
-        <span class="play-name" id="play-name" hidden></span>
-      </div>
-      <button class="link-btn" id="play-leave" type="button">Leave unit</button>
+    <div class="play-top">
+      <button class="icon-btn" id="play-leave" type="button" aria-label="Leave unit" title="Leave unit"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+      <div class="unit-bar" id="play-bar" role="progressbar" aria-label="Unit progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+      <button class="hint-btn" id="play-hint" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.2a4.6 4.6 0 0 0-2.7 8.3c.4.3.7.8.7 1.3v.6h4v-.6c0-.5.3-1 .7-1.3A4.6 4.6 0 0 0 8 1.2z" fill="currentColor"/><rect x="6" y="12.4" width="4" height="1.3" rx=".65" fill="currentColor"/><rect x="6.6" y="14.2" width="2.8" height="1.2" rx=".6" fill="currentColor"/></svg>Hint</button>
     </div>
-    <div class="confirm" id="leave-confirm" hidden>
+    <div class="bubble play-pop" id="leave-pop" hidden>
       <p>Leave this unit? This attempt won't be scored.</p>
-      <div class="actions">
-        <button class="btn danger small" id="leave-yes" type="button">Leave unit</button>
-        <button class="btn small" id="leave-no" type="button">Keep going</button>
-      </div>
+      <button class="btn" id="leave-yes" type="button">Leave unit</button>
     </div>
-    <div class="unit-bar" id="play-bar" role="progressbar" aria-label="Unit progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+    <div class="bubble play-pop" id="hint-pop" hidden>
+      <p>Are you sure you want to use a hint?</p>
+      <button class="btn" id="hint-yes" type="button">Use hint</button>
+    </div>
     <p class="phase-label" id="play-phase" hidden>Second try</p>
     <h2 class="qtext" id="play-text" tabindex="-1"></h2>
     <div class="opts" id="play-opts" role="group" aria-labelledby="play-text"></div>
@@ -873,6 +909,10 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     var length = phase === 1 ? u.ids.length : missed.length;
     var pos = a.pos | 0;
     if (pos < 0 || pos >= length) return null;
+    var answer = byId[(phase === 1 ? u.ids : missed)[pos]].answer;
+    var removed = Array.isArray(a.removed) ? a.removed.filter(function (i, k, list) {
+      return Number.isInteger(i) && i >= 0 && i < 4 && i !== answer && list.indexOf(i) === k;
+    }) : [];
     return {
       unit: u.key,
       fp: u.fp,
@@ -880,7 +920,8 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       pos: pos,
       missed: missed,
       firstCorrect: Math.max(0, Math.min(a.firstCorrect | 0, u.ids.length)),
-      choice: Number.isInteger(a.choice) && a.choice >= 0 && a.choice < 4 ? a.choice : null
+      choice: Number.isInteger(a.choice) && a.choice >= 0 && a.choice < 4 ? a.choice : null,
+      removed: removed
     };
   }
 
@@ -943,10 +984,6 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       if (!isPerfect(course.flat[i])) return course.flat[i];
     }
     return null;
-  }
-
-  function where(u) {
-    return u.course.name + DOT + 'Section ' + u.section.n + DOT + 'Unit ' + u.n;
   }
 
   // ---- All questions mode: state and storage --------------------------------
@@ -1094,7 +1131,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     }
     view = st.v;
     VIEWS.forEach(function (name) { $('view-' + name).hidden = name !== view; });
-    $('leave-confirm').hidden = true;
+    closePlayPops();
     if (view === 'home') renderHome();
     if (view === 'sections') renderSections(courses[st.c]);
     if (view === 'units') renderUnits(courses[st.c], courses[st.c].sections[st.s]);
@@ -1161,7 +1198,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
 
   // ---- Shared answer card --------------------------------------------------
 
-  function renderOptions(container, q, selected, choice, onSelect) {
+  function renderOptions(container, q, selected, choice, onSelect, removed) {
     container.textContent = '';
     var checked = choice !== null;
     q.options.forEach(function (text, i) {
@@ -1170,6 +1207,8 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       btn.dataset.i = i;
       btn.appendChild(el('span', 'key', LETTERS[i]));
       btn.appendChild(el('span', 'txt', text));
+      var gone = !!removed && removed.indexOf(i) >= 0;
+      if (gone) btn.classList.add('is-removed');
       if (checked) {
         btn.disabled = true;
         var mark = null;
@@ -1183,6 +1222,8 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
           btn.classList.add('is-dim');
         }
         if (mark) btn.appendChild(el('span', 'mark', mark));
+      } else if (gone) {
+        btn.disabled = true;
       } else {
         btn.setAttribute('aria-pressed', i === selected ? 'true' : 'false');
         if (i === selected) btn.classList.add('is-selected');
@@ -1330,12 +1371,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       row.type = 'button';
       row.dataset.unit = u.key;
       row.setAttribute('aria-expanded', 'false');
-      if (nameOf(u.key)) {
-        row.appendChild(el('span', 'row-label', 'Unit ' + u.n));
-        row.appendChild(el('span', 'row-title', nameOf(u.key)));
-      } else {
-        row.appendChild(el('span', 'row-title', 'Unit ' + u.n));
-      }
+      row.appendChild(el('span', 'row-title', 'Unit ' + u.n));
       row.appendChild(el('span', 'row-sub', u.ids.length + ' questions'));
       row.appendChild(unitSide(u, locked));
       row.addEventListener('click', function (e) {
@@ -1383,7 +1419,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
 
   window.addEventListener('resize', placeBubble);
 
-  // Tapping a unit opens a pop-up under it: Start (or Resume), or why it's locked.
+  // Tapping a unit opens a pop-up under it: the unit's name, then Start (or Resume), or why it's locked.
   function toggleBubble(row, u) {
     var wasOpen = row.getAttribute('aria-expanded') === 'true';
     closeBubble();
@@ -1391,6 +1427,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     var locked = !isUnlocked(u);
     var bubble = el('div', 'bubble' + (locked ? ' is-locked' : ''));
     bubble.id = 'unit-bubble';
+    if (nameOf(u.key)) bubble.appendChild(el('p', 'bubble-name', nameOf(u.key)));
     if (locked) {
       bubble.appendChild(el('p', '', lockMessage(u)));
     } else {
@@ -1425,7 +1462,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
   function openUnit(u) {
     if (!isUnlocked(u)) return;
     if (!ust.attempt || ust.attempt.unit !== u.key) {
-      ust.attempt = { unit: u.key, fp: u.fp, phase: 1, pos: 0, missed: [], firstCorrect: 0, choice: null };
+      ust.attempt = { unit: u.key, fp: u.fp, phase: 1, pos: 0, missed: [], firstCorrect: 0, choice: null, removed: [] };
       saveUnits();
     }
     push({ v: 'play' });
@@ -1448,21 +1485,19 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     var q = playQuestion();
     var fill = (a.pos + (a.choice === null ? 0 : 1)) / playList().length * 100;
     var bar = $('play-bar');
-    $('play-where').textContent = where(u);
-    $('play-name').textContent = nameOf(u.key);
-    $('play-name').hidden = !nameOf(u.key);
     $('play-phase').hidden = a.phase !== 2;
     bar.classList.toggle('is-retry', a.phase === 2);
     bar.firstElementChild.style.width = fill + '%';
     bar.setAttribute('aria-valuenow', String(Math.round(fill)));
     $('play-text').textContent = q.q;
-    renderOptions($('play-opts'), q, playSel, a.choice, selectPlay);
+    renderOptions($('play-opts'), q, playSel, a.choice, selectPlay, a.removed);
     renderVerdict($('play-verdict'), q, a.choice);
+    $('play-hint').disabled = a.choice !== null || !wrongLeft(q).length;
     renderDock();
   }
 
   function selectPlay(i) {
-    if (view !== 'play' || ust.attempt.choice !== null) return;
+    if (view !== 'play' || ust.attempt.choice !== null || ust.attempt.removed.indexOf(i) >= 0) return;
     playSel = i;
     markSelected($('play-opts'), i);
     renderDock();
@@ -1474,7 +1509,8 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     var q = playQuestion();
     a.choice = playSel;
     if (a.phase === 1) {
-      if (a.choice === q.answer) a.firstCorrect++;
+      // A hint on a first try counts as a miss, even when the answer is then right.
+      if (a.choice === q.answer && !a.removed.length) a.firstCorrect++;
       else a.missed.push(q.id);
     }
     playSel = null;
@@ -1490,6 +1526,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     var u = playUnit();
     a.pos++;
     a.choice = null;
+    a.removed = [];
     playSel = null;
     if (a.phase === 1 && a.pos >= u.ids.length) {
       if (!a.missed.length) return finishUnit();
@@ -1521,13 +1558,71 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     backToUnits(u);
   }
 
-  $('play-leave').addEventListener('click', function () {
-    $('leave-confirm').hidden = false;
-    $('leave-no').focus();
+  // ---- Hints: each one removes a wrong answer, so the third leaves only the right one.
+
+  function wrongLeft(q) {
+    return [0, 1, 2, 3].filter(function (i) { return i !== q.answer && ust.attempt.removed.indexOf(i) < 0; });
+  }
+
+  function useHint() {
+    var a = ust.attempt;
+    if (view !== 'play' || !a || a.choice !== null) return;
+    var q = playQuestion();
+    var wrong = wrongLeft(q);
+    if (!wrong.length) return;
+    var gone = wrong[Math.floor(Math.random() * wrong.length)];
+    a.removed.push(gone);
+    if (playSel === gone) playSel = null;
+    if (!wrongLeft(q).length) playSel = q.answer;   // only the right answer is left
+    saveUnits();
+    renderPlay();
+  }
+
+  // ---- Pop-ups under the X and Hint buttons -------------------------------------
+
+  function closePlayPops() {
+    $('leave-pop').hidden = true;
+    $('hint-pop').hidden = true;
+  }
+
+  // Floats just under the button that opened it, pointing at that button.
+  function togglePlayPop(id, btn) {
+    var pop = $(id);
+    var wasOpen = !pop.hidden;
+    closePlayPops();
+    if (wasOpen) return;
+    pop.hidden = false;
+    pop.style.top = (btn.offsetTop + btn.offsetHeight + 10) + 'px';
+    pop.style.setProperty('--caret', (btn.offsetLeft + btn.offsetWidth / 2 - pop.offsetLeft - 7) + 'px');
+    pop.querySelector('button').focus({ preventScroll: true });
+  }
+
+  ['leave-pop', 'hint-pop'].forEach(function (id) {
+    $(id).addEventListener('click', function (e) { e.stopPropagation(); });
   });
-  $('leave-no').addEventListener('click', function () {
-    $('leave-confirm').hidden = true;
-    $('play-leave').focus();
+  document.addEventListener('click', function () { if (view === 'play') closePlayPops(); });
+
+  $('play-hint').addEventListener('click', function (e) {
+    e.stopPropagation();
+    var a = ust.attempt;
+    if (!a || a.choice !== null) return;
+    // Only the first hint on a first-try card costs the question, so only that one asks.
+    if (a.phase === 1 && !a.removed.length) {
+      togglePlayPop('hint-pop', this);
+    } else {
+      closePlayPops();
+      useHint();
+    }
+  });
+  $('hint-yes').addEventListener('click', function () {
+    closePlayPops();
+    useHint();
+    $($('play-hint').disabled ? 'dock-btn' : 'play-hint').focus({ preventScroll: true });
+  });
+
+  $('play-leave').addEventListener('click', function (e) {
+    e.stopPropagation();
+    togglePlayPop('leave-pop', this);
   });
   $('leave-yes').addEventListener('click', function () {
     if (!ust.attempt) return;
@@ -1676,6 +1771,10 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     if (e.key === 'Escape' && view === 'units') {
       var row = closeBubble();
       if (row) row.focus();
+      return;
+    }
+    if (e.key === 'Escape' && view === 'play') {
+      closePlayPops();
       return;
     }
     if ((view !== 'play' && view !== 'card') || e.metaKey || e.ctrlKey || e.altKey) return;
