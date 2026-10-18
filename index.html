@@ -1,4 +1,4 @@
-<title>Amateur Radio Flashcards</title>
+<title>Go HAM</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -194,7 +194,7 @@ button { font: inherit; color: inherit; }
 .course-card:hover { border-color: var(--accent); }
 .course-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .course-name { font-family: var(--font-display); font-weight: 700; font-size: var(--step-3); line-height: 1; }
-.course-sub, .course-count { color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
+.course-sub { color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
 .course-card .bar { height: 6px; border-radius: 3px; }
 .chev { font-size: 1.5rem; line-height: 1; color: var(--muted); }
 .secondary { display: flex; justify-content: center; }
@@ -205,7 +205,6 @@ button { font: inherit; color: inherit; }
 /* One line each, so the Sections and Units headers stay the same height. */
 .view-name { margin: 0; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .view-title:focus, h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
-.view-sub { margin: 0; color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
 .view-head .bar { height: 6px; border-radius: 3px; margin-top: 4px; }
 
 .rows {
@@ -243,7 +242,6 @@ button { font: inherit; color: inherit; }
   display: flex; align-items: center; gap: 10px;
   color: var(--muted); font-size: var(--step--1); font-weight: 700; font-variant-numeric: tabular-nums;
 }
-.row.has-label-and-bar .row-side { grid-row: 1 / span 4; }
 .row.is-locked .row-label, .row.is-locked .row-title, .row.is-locked .row-sub { color: var(--muted); opacity: .7; }
 .row[aria-expanded="true"] { background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
 .unit-progress { display: block; width: 72px; height: 8px; border-radius: 4px; background: var(--seg-off); overflow: hidden; }
@@ -460,21 +458,18 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
 
   <section class="view" id="view-home" hidden aria-labelledby="home-title">
     <header class="plate">
-      <h1 id="home-title" tabindex="-1">Amateur Radio Flashcards</h1>
-      <p>Canadian Basic &amp; Advanced exam question banks</p>
+      <h1 id="home-title" tabindex="-1">Go HAM</h1>
     </header>
     <div class="courses">
       <button class="course-card" id="course-basic" type="button">
         <span class="course-head"><span class="course-name">Basic</span><span class="chev" aria-hidden="true">&rsaquo;</span></span>
         <span class="course-sub"></span>
-        <span class="bar"><span></span></span>
-        <span class="course-count"></span>
+        <span class="bar" role="img"><span></span></span>
       </button>
       <button class="course-card" id="course-advanced" type="button">
         <span class="course-head"><span class="course-name">Advanced</span><span class="chev" aria-hidden="true">&rsaquo;</span></span>
         <span class="course-sub"></span>
-        <span class="bar"><span></span></span>
-        <span class="course-count"></span>
+        <span class="bar" role="img"><span></span></span>
       </button>
     </div>
     <!-- All questions mode is hidden for now; remove "hidden" to bring the link back. -->
@@ -488,8 +483,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     <div class="view-head">
       <h2 class="view-title" id="sections-title" tabindex="-1">Basic</h2>
       <p class="view-name" id="sections-name" hidden></p>
-      <p class="view-sub" id="sections-sub"></p>
-      <span class="bar"><span id="sections-bar"></span></span>
+      <span class="bar" role="img" id="sections-meter"><span id="sections-bar"></span></span>
     </div>
     <div class="rows" id="sections-list"></div>
   </section>
@@ -499,8 +493,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     <div class="view-head">
       <h2 class="view-title" id="units-title" tabindex="-1">Section 1</h2>
       <p class="view-name" id="units-name" hidden></p>
-      <p class="view-sub" id="units-sub"></p>
-      <span class="bar"><span id="units-bar"></span></span>
+      <span class="bar" role="img" id="units-meter"><span id="units-bar"></span></span>
     </div>
     <div class="rows-wrap" id="units-wrap"><div class="rows" id="units-list"></div></div>
   </section>
@@ -809,8 +802,12 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     return e;
   }
 
-  function barEl(fraction) {
+  function barEl(fraction, label) {
     var bar = el('span', 'bar');
+    if (label) {
+      bar.setAttribute('role', 'img');
+      bar.setAttribute('aria-label', label);
+    }
     var fill = el('span');
     fill.style.width = (fraction * 100) + '%';
     bar.appendChild(fill);
@@ -1255,7 +1252,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       var done = perfectCount(course.flat);
       card.querySelector('.course-sub').textContent = course.name + ' Qualification' + DOT + course.sections.length + ' sections' + DOT + total + ' units';
       card.querySelector('.bar span').style.width = (total ? done / total * 100 : 0) + '%';
-      card.querySelector('.course-count').textContent = done + ' of ' + total + ' units completed';
+      card.querySelector('.bar').setAttribute('aria-label', done + ' of ' + total + ' units completed');
     });
   }
 
@@ -1271,7 +1268,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     $('sections-title').textContent = course.name;
     $('sections-name').textContent = SHOW_NAMES ? course.name + ' Qualification' : '';
     $('sections-name').hidden = !SHOW_NAMES;
-    $('sections-sub').textContent = done + ' of ' + total + ' units completed';
+    $('sections-meter').setAttribute('aria-label', done + ' of ' + total + ' units completed');
     $('sections-bar').style.width = (total ? done / total * 100 : 0) + '%';
     var list = $('sections-list');
     list.textContent = '';
@@ -1281,14 +1278,12 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       var row = el('button', 'row' + (locked ? ' is-locked' : ''));
       row.type = 'button';
       if (nameOf(sec.key)) {
-        row.classList.add('has-label-and-bar');
         row.appendChild(el('span', 'row-label', 'Section ' + sec.n));
         row.appendChild(el('span', 'row-title', nameOf(sec.key)));
       } else {
         row.appendChild(el('span', 'row-title', 'Section ' + sec.n));
       }
-      row.appendChild(el('span', 'row-sub', perfect + ' of ' + sec.units.length + ' units completed'));
-      row.appendChild(barEl(sec.units.length ? perfect / sec.units.length : 0));
+      row.appendChild(barEl(sec.units.length ? perfect / sec.units.length : 0, perfect + ' of ' + sec.units.length + ' units completed'));
       var side = el('span', 'row-side');
       if (locked) {
         var lock = el('span', 'lock');
@@ -1318,8 +1313,8 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     if (locked) {
       var lock = el('span', 'lock');
       lock.innerHTML = LOCK_SVG;
+      lock.appendChild(el('span', 'sr-only', 'Locked'));
       side.appendChild(lock);
-      side.appendChild(el('span', '', 'Locked'));
       return side;
     }
     var s = scoreOf(u);
@@ -1349,7 +1344,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     $('units-title').textContent = 'Section ' + sec.n;
     $('units-name').textContent = nameOf(sec.key);
     $('units-name').hidden = !nameOf(sec.key);
-    $('units-sub').textContent = course.name + DOT + perfect + ' of ' + sec.units.length + ' units completed';
+    $('units-meter').setAttribute('aria-label', perfect + ' of ' + sec.units.length + ' units completed');
     $('units-bar').style.width = (sec.units.length ? perfect / sec.units.length * 100 : 0) + '%';
     closeBubble();
     var list = $('units-list');
