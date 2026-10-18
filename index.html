@@ -245,16 +245,19 @@ button { font: inherit; color: inherit; }
 .unit-progress { display: block; width: 72px; height: 8px; border-radius: 4px; background: var(--seg-off); overflow: hidden; }
 .unit-progress span { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
 
-/* Pop-up under a tapped unit */
+/* Pop-up floating over the unit list, just below the tapped unit */
+.rows-wrap { position: relative; }
 .bubble {
-  position: relative;
+  position: absolute;
+  left: 12px; right: 12px;
+  z-index: 5;
   display: grid;
   gap: 10px;
-  margin: 2px 12px 14px;
   padding: 14px 16px;
   border-radius: 12px;
   background: var(--ink);
   color: var(--bg);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .28);
   animation: bubble-in .15s ease-out;
 }
 .bubble::before {
@@ -266,6 +269,7 @@ button { font: inherit; color: inherit; }
   background: inherit;
   transform: rotate(45deg);
 }
+.bubble.is-above::before { top: auto; bottom: -6px; }
 .bubble p { position: relative; margin: 0; font-weight: 700; }
 .bubble .btn { position: relative; width: 100%; min-height: 48px; font-size: var(--step-1); background: var(--bg); color: var(--ink); border-color: var(--bg); }
 .bubble.is-locked { background: var(--seg-off); color: var(--ink); }
@@ -459,12 +463,11 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
   <section class="view" id="view-units" hidden aria-labelledby="units-title">
     <div class="nav-row"><button class="link-btn" id="units-back" type="button">&lsaquo; Sections</button></div>
     <div class="view-head">
-      <span class="eyebrow" id="units-course">Basic</span>
       <h2 class="view-title" id="units-title" tabindex="-1">Section 1</h2>
       <p class="view-sub" id="units-sub"></p>
       <span class="bar"><span id="units-bar"></span></span>
     </div>
-    <div class="rows" id="units-list"></div>
+    <div class="rows-wrap" id="units-wrap"><div class="rows" id="units-list"></div></div>
   </section>
 
   <section class="panel" id="view-play" hidden aria-labelledby="play-text">
@@ -1119,10 +1122,10 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
 
   function renderUnits(course, sec) {
     var perfect = perfectCount(sec.units);
-    $('units-course').textContent = course.name;
     $('units-title').textContent = 'Section ' + sec.n;
-    $('units-sub').textContent = perfect + ' of ' + sec.units.length + ' units completed';
+    $('units-sub').textContent = course.name + DOT + perfect + ' of ' + sec.units.length + ' units completed';
     $('units-bar').style.width = (sec.units.length ? perfect / sec.units.length * 100 : 0) + '%';
+    closeBubble();
     var list = $('units-list');
     list.textContent = '';
     sec.units.forEach(function (u) {
@@ -1154,14 +1157,30 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     return 'Complete all units above to unlock this.';
   }
 
+  var bubbleRow = null;
+
   function closeBubble() {
     var bubble = $('unit-bubble');
-    if (!bubble) return null;
-    var row = bubble.previousElementSibling;
+    var row = bubbleRow;
+    bubbleRow = null;
     if (row) row.setAttribute('aria-expanded', 'false');
-    bubble.remove();
+    if (bubble) bubble.remove();
     return row;
   }
+
+  // Floats just below its unit, over the units that follow, so nothing in the list moves.
+  // Near the end of the list, where there's no room below, it opens above the unit instead.
+  function placeBubble() {
+    var bubble = $('unit-bubble');
+    if (!bubble || !bubbleRow) return;
+    var below = bubbleRow.offsetTop + bubbleRow.offsetHeight + 8;
+    var above = bubbleRow.offsetTop - bubble.offsetHeight - 8;
+    var flip = below + bubble.offsetHeight > $('units-wrap').offsetHeight && above >= 0;
+    bubble.classList.toggle('is-above', flip);
+    bubble.style.top = (flip ? above : below) + 'px';
+  }
+
+  window.addEventListener('resize', placeBubble);
 
   // Tapping a unit opens a pop-up under it: Start (or Resume), or why it's locked.
   function toggleBubble(row, u) {
@@ -1181,7 +1200,9 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       bubble.appendChild(start);
     }
     bubble.addEventListener('click', function (e) { e.stopPropagation(); });
-    row.after(bubble);
+    $('units-wrap').appendChild(bubble);
+    bubbleRow = row;
+    placeBubble();
     row.setAttribute('aria-expanded', 'true');
     row.setAttribute('aria-controls', 'unit-bubble');
     var startBtn = bubble.querySelector('button');
