@@ -240,8 +240,36 @@ button { font: inherit; color: inherit; }
   display: flex; align-items: center; gap: 10px;
   color: var(--muted); font-size: var(--step--1); font-weight: 700; font-variant-numeric: tabular-nums;
 }
-.row.is-locked { cursor: default; }
 .row.is-locked .row-title, .row.is-locked .row-sub { color: var(--muted); opacity: .7; }
+.row[aria-expanded="true"] { background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+.unit-progress { display: block; width: 72px; height: 8px; border-radius: 4px; background: var(--seg-off); overflow: hidden; }
+.unit-progress span { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
+
+/* Pop-up under a tapped unit */
+.bubble {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  margin: 2px 12px 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--bg);
+  animation: bubble-in .15s ease-out;
+}
+.bubble::before {
+  content: "";
+  position: absolute;
+  top: -6px; left: 30px;
+  width: 14px; height: 14px;
+  border-radius: 2px;
+  background: inherit;
+  transform: rotate(45deg);
+}
+.bubble p { position: relative; margin: 0; font-weight: 700; }
+.bubble .btn { position: relative; width: 100%; min-height: 48px; font-size: var(--step-1); background: var(--bg); color: var(--ink); border-color: var(--bg); }
+.bubble.is-locked { background: var(--seg-off); color: var(--ink); }
+@keyframes bubble-in { from { opacity: 0; transform: translateY(-4px); } }
 .status-perfect { color: var(--good); }
 .status-progress { color: var(--accent-ink); }
 .lock { display: inline-flex; color: var(--muted); }
@@ -343,13 +371,10 @@ legend { padding: 0; margin-bottom: 8px; }
 .choice input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
 .home-actions { display: grid; gap: 12px; justify-items: start; }
 
-/* Results */
+/* Run results (All questions) */
 .score { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
 .score-pct { font-family: var(--font-mono); font-weight: 500; font-size: 3rem; line-height: 1; color: var(--accent-ink); font-variant-numeric: tabular-nums; }
 .score-count { color: var(--muted); font-size: var(--step-1); font-variant-numeric: tabular-nums; }
-.result-title-perfect { color: var(--good); }
-.result-actions { display: flex; flex-wrap: wrap; gap: 12px; }
-.note { color: var(--muted); }
 
 /* Pinned action dock */
 .dock {
@@ -386,6 +411,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
 }
 @media (prefers-reduced-motion: reduce) {
   .bar span, .unit-bar span, .opt { transition: none; }
+  .bubble { animation: none; }
 }
 </style>
 
@@ -459,22 +485,6 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     <div class="opts" id="play-opts" role="group" aria-labelledby="play-text"></div>
     <p class="verdict" id="play-verdict" role="status" aria-live="polite"></p>
     <p class="kbd-hint">Keys: <kbd>A</kbd>&ndash;<kbd>D</kbd> or <kbd>1</kbd>&ndash;<kbd>4</kbd> to choose, <kbd>Enter</kbd> to check, then <kbd>Enter</kbd> or <kbd>&rarr;</kbd> for the next question.</p>
-  </section>
-
-  <section class="panel" id="view-result" hidden aria-labelledby="result-title">
-    <span class="eyebrow" id="result-where"></span>
-    <h2 id="result-title" tabindex="-1">Unit result</h2>
-    <div class="score">
-      <span class="score-pct" id="result-score"></span>
-      <span class="score-count">right on the first try</span>
-    </div>
-    <p id="result-best"></p>
-    <p class="note" id="result-note" hidden></p>
-    <div class="result-actions">
-      <button class="btn" id="result-again" type="button">Play again</button>
-      <button class="btn" id="result-next" type="button">Next unit</button>
-    </div>
-    <div><button class="link-btn" id="result-back" type="button">Back to units</button></div>
   </section>
 
   <section class="panel" id="view-runsetup" hidden aria-labelledby="runsetup-title">
@@ -820,7 +830,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
   var nav = [];
   var view = null;
   var historyOK = true;
-  var VIEWS = ['home', 'sections', 'units', 'play', 'result', 'runsetup', 'card', 'done'];
+  var VIEWS = ['home', 'sections', 'units', 'play', 'runsetup', 'card', 'done'];
 
   function syncHistory(method) {
     if (!historyOK) return;
@@ -845,17 +855,29 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
   // one underneath, step back to it so the phone's back gesture stays in step.
   function backTo(target) {
     if (sameScreen(nav[nav.length - 2], target)) {
-      if (historyOK) { history.back(); return; }
+      // Show the screen straight away, then step the browser's history back to match.
       nav.pop();
       render();
+      if (historyOK) {
+        expectPop = true;
+        history.back();
+      }
       return;
     }
     replace(target);
   }
 
+  var expectPop = false;
+
   window.addEventListener('popstate', function (e) {
     var h = e.state;
-    nav = h && h.app === 'flashcards' && Array.isArray(h.nav) && h.nav.length ? h.nav.slice() : [{ v: 'home' }];
+    var next = h && h.app === 'flashcards' && Array.isArray(h.nav) && h.nav.length ? h.nav.slice() : [{ v: 'home' }];
+    if (expectPop) {
+      expectPop = false;
+      // Our own history.back() from backTo: that screen is already showing.
+      if (next.length === nav.length && sameScreen(next[next.length - 1], top())) return;
+    }
+    nav = next;
     render();
   });
 
@@ -866,7 +888,6 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       case 'sections': return courses[st.c] ? st : { v: 'home' };
       case 'units': return courses[st.c] && courses[st.c].sections[st.s] ? st : { v: 'home' };
       case 'play': return ust.attempt ? st : { v: 'home' };
-      case 'result': return lastResult ? st : { v: 'home' };
       case 'runsetup': return st;
       case 'card': return runActive() ? st : { v: 'runsetup' };
       case 'done': return state.run && !runActive() ? st : { v: 'runsetup' };
@@ -889,12 +910,18 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     if (view === 'sections') renderSections(courses[st.c]);
     if (view === 'units') renderUnits(courses[st.c], courses[st.c].sections[st.s]);
     if (view === 'play') { playSel = null; renderPlay(); }
-    if (view === 'result') renderResult();
     if (view === 'runsetup') renderRunSetup();
     if (view === 'card') { runSel = null; renderCard(); }
     if (view === 'done') renderDone();
     renderDock();
     window.scrollTo(0, 0);
+    // After a unit, bring that unit's row into view so its new status shows.
+    var row = view === 'units' && scrollToUnit ? document.querySelector('#units-list .row[data-unit="' + scrollToUnit + '"]') : null;
+    scrollToUnit = null;
+    if (row) {
+      row.scrollIntoView({ block: 'center' });
+      row.focus({ preventScroll: true });
+    }
   }
 
   // ---- Pinned action dock --------------------------------------------------
@@ -935,8 +962,8 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
   $('dock-btn').addEventListener('click', function () {
     if (view === 'sections' || view === 'units') {
       var target = continueTarget(courses[top().c]);
-      if (target) openUnit(target, false);
-    } else if (view === 'play') {
+      if (target) openUnit(target);
+    } else if (view === 'play' && ust.attempt) {
       if (ust.attempt.choice === null) checkPlay(); else nextPlay();
     } else if (view === 'card') {
       if (state.run.choice === null) checkRun(); else nextRun();
@@ -1056,13 +1083,38 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
 
   // ---- Units ---------------------------------------------------------------
 
-  function unitStatus(u) {
-    if (!isUnlocked(u)) return { text: 'Locked', cls: '' };
-    if (ust.attempt && ust.attempt.unit === u.key) return { text: 'In progress', cls: 'status-progress' };
+  var scrollToUnit = null;
+
+  // What a unit row shows on the right: lock, status, or a bar for the best first-try score.
+  function unitSide(u, locked) {
+    var side = el('span', 'row-side');
+    if (locked) {
+      var lock = el('span', 'lock');
+      lock.innerHTML = LOCK_SVG;
+      side.appendChild(lock);
+      side.appendChild(el('span', '', 'Locked'));
+      return side;
+    }
     var s = scoreOf(u);
-    if (!s) return { text: 'Not started', cls: '' };
-    if (s.best === u.ids.length) return { text: '\u2713 Completed', cls: 'status-perfect' };
-    return { text: 'Best ' + s.best + ' of ' + u.ids.length, cls: '' };
+    if (ust.attempt && ust.attempt.unit === u.key) {
+      side.appendChild(el('span', 'status-progress', 'In progress'));
+    } else if (!s) {
+      side.appendChild(el('span', '', 'Not started'));
+    } else if (s.best === u.ids.length) {
+      side.appendChild(el('span', 'status-perfect', '\u2713 Completed'));
+    } else {
+      var bar = el('span', 'unit-progress');
+      bar.setAttribute('role', 'img');
+      bar.setAttribute('aria-label', 'Best score ' + s.best + ' of ' + u.ids.length);
+      var fill = el('span');
+      fill.style.width = (s.best / u.ids.length * 100) + '%';
+      bar.appendChild(fill);
+      side.appendChild(bar);
+    }
+    var chev = el('span', 'chev', '\u203a');
+    chev.setAttribute('aria-hidden', 'true');
+    side.appendChild(chev);
+    return side;
   }
 
   function renderUnits(course, sec) {
@@ -1075,28 +1127,70 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     list.textContent = '';
     sec.units.forEach(function (u) {
       var locked = !isUnlocked(u);
-      var status = unitStatus(u);
       var row = el('button', 'row' + (locked ? ' is-locked' : ''));
       row.type = 'button';
-      row.disabled = locked;
+      row.dataset.unit = u.key;
+      row.setAttribute('aria-expanded', 'false');
       row.appendChild(el('span', 'row-title', 'Unit ' + u.n));
       row.appendChild(el('span', 'row-sub', u.ids.length + ' questions'));
-      var side = el('span', 'row-side');
-      if (locked) {
-        var lock = el('span', 'lock');
-        lock.innerHTML = LOCK_SVG;
-        side.appendChild(lock);
-        side.appendChild(el('span', '', 'Locked'));
-      } else {
-        side.appendChild(el('span', status.cls, status.text));
-        side.appendChild(el('span', 'chev', '\u203a'));
-        side.lastChild.setAttribute('aria-hidden', 'true');
-      }
-      row.appendChild(side);
-      if (!locked) row.addEventListener('click', function () { openUnit(u, false); });
+      row.appendChild(unitSide(u, locked));
+      row.addEventListener('click', function (e) {
+        e.stopPropagation();
+        toggleBubble(row, u);
+      });
       list.appendChild(row);
     });
   }
+
+  function lockMessage(u) {
+    var flat = u.course.flat;
+    for (var i = 0; i < u.index; i++) {
+      if (!isPerfect(flat[i])) {
+        return flat[i].section === u.section
+          ? 'Complete all units above to unlock this.'
+          : 'Complete all units in earlier sections to unlock this.';
+      }
+    }
+    return 'Complete all units above to unlock this.';
+  }
+
+  function closeBubble() {
+    var bubble = $('unit-bubble');
+    if (!bubble) return null;
+    var row = bubble.previousElementSibling;
+    if (row) row.setAttribute('aria-expanded', 'false');
+    bubble.remove();
+    return row;
+  }
+
+  // Tapping a unit opens a pop-up under it: Start (or Resume), or why it's locked.
+  function toggleBubble(row, u) {
+    var wasOpen = row.getAttribute('aria-expanded') === 'true';
+    closeBubble();
+    if (wasOpen) return;
+    var locked = !isUnlocked(u);
+    var bubble = el('div', 'bubble' + (locked ? ' is-locked' : ''));
+    bubble.id = 'unit-bubble';
+    if (locked) {
+      bubble.appendChild(el('p', '', lockMessage(u)));
+    } else {
+      var resume = !!(ust.attempt && ust.attempt.unit === u.key);
+      var start = el('button', 'btn', resume ? 'Resume' : 'Start');
+      start.type = 'button';
+      start.addEventListener('click', function () { openUnit(u); });
+      bubble.appendChild(start);
+    }
+    bubble.addEventListener('click', function (e) { e.stopPropagation(); });
+    row.after(bubble);
+    row.setAttribute('aria-expanded', 'true');
+    row.setAttribute('aria-controls', 'unit-bubble');
+    var startBtn = bubble.querySelector('button');
+    if (startBtn) startBtn.focus({ preventScroll: true });
+    bubble.scrollIntoView({ block: 'nearest' });
+  }
+
+  // A tap anywhere else closes the pop-up.
+  document.addEventListener('click', function () { if (view === 'units') closeBubble(); });
 
   $('units-back').addEventListener('click', function () { backTo({ v: 'sections', c: top().c }); });
 
@@ -1105,15 +1199,14 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
   // only first-try answers count toward the score.
 
   var playSel = null;
-  var lastResult = null;
 
-  function openUnit(u, replaceScreen) {
+  function openUnit(u) {
     if (!isUnlocked(u)) return;
     if (!ust.attempt || ust.attempt.unit !== u.key) {
       ust.attempt = { unit: u.key, fp: u.fp, phase: 1, pos: 0, missed: [], firstCorrect: 0, choice: null };
       saveUnits();
     }
-    if (replaceScreen) replace({ v: 'play' }); else push({ v: 'play' });
+    push({ v: 'play' });
     focusQuestion('play-text');
   }
 
@@ -1198,11 +1291,10 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     var prev = scoreOf(u);
     var score = a.firstCorrect;
     if (!prev || score > prev.best) ust.scores[u.key] = { best: score, size: u.ids.length, fp: u.fp };
-    lastResult = { unit: u.key, score: score };
     ust.attempt = null;
     saveUnits();
-    replace({ v: 'result' });
-    $('result-title').focus({ preventScroll: true });
+    scrollToUnit = u.key;
+    backToUnits(u);
   }
 
   $('play-leave').addEventListener('click', function () {
@@ -1214,6 +1306,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     $('play-leave').focus();
   });
   $('leave-yes').addEventListener('click', function () {
+    if (!ust.attempt) return;
     var u = playUnit();
     ust.attempt = null;
     saveUnits();
@@ -1224,40 +1317,6 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
   function backToUnits(u) {
     backTo({ v: 'units', c: u.course.key, s: u.section.n - 1 });
   }
-
-  // ---- Unit result ---------------------------------------------------------
-
-  function renderResult() {
-    var u = unitByKey[lastResult.unit];
-    var size = u.ids.length;
-    var perfect = lastResult.score === size;
-    var best = scoreOf(u);
-    var next = u.course.flat[u.index + 1] || null;
-    var nextOpen = !!next && isUnlocked(next);
-    $('result-where').textContent = where(u);
-    $('result-title').textContent = perfect ? 'Completed!' : 'Not completed yet';
-    $('result-title').classList.toggle('result-title-perfect', perfect);
-    $('result-score').textContent = lastResult.score + ' of ' + size;
-    $('result-best').textContent = best ? 'Best score: ' + best.best + ' of ' + size : '';
-    $('result-next').hidden = !next;
-    $('result-next').disabled = !nextOpen;
-    $('result-again').className = 'btn' + (perfect && nextOpen ? '' : ' primary');
-    $('result-next').className = 'btn' + (perfect && nextOpen ? ' primary' : '');
-    var note = '';
-    if (!perfect) note = 'Get every question right on the first try to complete this unit' + (UNLOCK_IN_ORDER && next ? ' and unlock the next one.' : '.');
-    else if (!next) note = 'That was the last unit in ' + u.course.name + '.';
-    else if (!nextOpen) note = 'The next unit unlocks when every unit before it is completed.';
-    $('result-note').textContent = note;
-    $('result-note').hidden = !note;
-  }
-
-  $('result-again').addEventListener('click', function () { openUnit(unitByKey[lastResult.unit], true); });
-  $('result-next').addEventListener('click', function () {
-    var u = unitByKey[lastResult.unit];
-    var next = u.course.flat[u.index + 1];
-    if (next) openUnit(next, true);
-  });
-  $('result-back').addEventListener('click', function () { backToUnits(unitByKey[lastResult.unit]); });
 
   // ---- All questions mode --------------------------------------------------
 
@@ -1390,6 +1449,11 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
 
   var KEY_INDEX = { a: 0, b: 1, c: 2, d: 3, '1': 0, '2': 1, '3': 2, '4': 3 };
   document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && view === 'units') {
+      var row = closeBubble();
+      if (row) row.focus();
+      return;
+    }
     if ((view !== 'play' && view !== 'card') || e.metaKey || e.ctrlKey || e.altKey) return;
     var target = e.target;
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
