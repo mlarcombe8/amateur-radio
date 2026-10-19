@@ -17,12 +17,16 @@
   --muted: #94a4b3;
   --line: #2e3f4e;
   /* Course colours: neon cyan for Basic, electric orange for Advanced.
-     The neon fills buttons, selections and pop-ups, with --on-neon text on top; -line is for bars, focus rings and coloured text. */
+     The neon fills buttons, cards, selections and pop-ups; their text is off-white, while --on-neon is the dark mark on small neon parts such as the selected letter badge. -line is for bars, focus rings and coloured text. */
   --cyan: #00e5ff;
   --cyan-line: #00e5ff;
   --orange: #ff7a1f;
   --orange-line: #ff7a1f;
   --on-neon: #08131b;
+  /* The filled part of progress bars, on the cards and while playing. */
+  --lime: #92e033;
+  /* Answer tiles sit a step lighter than the card they're on. */
+  --surface-raised: #263646;
   /* Off-white instead of pure white: the text and buttons inside the neon pop-ups. */
   --off-white: #eef2f5;
   /* Locked-unit pop-up: grey on grey. */
@@ -31,12 +35,10 @@
   --seg-off: #121c25;
   /* Answers: green for the right one, red for a wrong pick. The button after Check uses the same two colours. */
   --good: #5acb8c;
-  --good-bg: #123022;
   --bad: #ff8a7a;
-  --bad-bg: #3b1915;
   /* Depth: cards cast a soft shadow; pop-ups float higher and cast a deeper one. */
-  --shadow: 0 2px 4px rgba(0, 0, 0, .35), 0 12px 28px rgba(0, 0, 0, .45);
-  --pop-shadow: 0 6px 14px rgba(0, 0, 0, .45), 0 18px 36px rgba(0, 0, 0, .55);
+  --shadow: 0 4px 8px rgba(0, 0, 0, .4), 0 16px 34px rgba(0, 0, 0, .5);
+  --pop-shadow: 0 8px 18px rgba(0, 0, 0, .5), 0 24px 46px rgba(0, 0, 0, .6);
 
   --font-display: "Barlow Semi Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
   --font-body: "Atkinson Hyperlegible", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -52,8 +54,9 @@
 }
 
 /* The colour of the course on screen: Basic unless data-course="advanced" (set on <body> for each screen, and on the Advanced card). */
-:root { --course: var(--cyan); --course-line: var(--cyan-line); }
-[data-course="advanced"] { --course: var(--orange); --course-line: var(--orange-line); }
+:root { --course: var(--cyan); --course-line: var(--cyan-line); --course-shade: color-mix(in srgb, var(--cyan) 62%, #000); }
+[data-course="advanced"] { --course: var(--orange); --course-line: var(--orange-line); --course-shade: color-mix(in srgb, var(--orange) 62%, #000); }
+/* --course-shade: the course colour's lighter shade, used for raised edges under course-coloured things and for progress on course-coloured cards. */
 
 [hidden] { display: none !important; }
 *, *::before, *::after { box-sizing: border-box; }
@@ -82,6 +85,8 @@ body.has-dock .wrap { padding-bottom: var(--dock-space); }
 
 button { font: inherit; color: inherit; }
 :focus-visible { outline: 3px solid var(--course-line); outline-offset: 2px; }
+/* Focus rings are for keyboard use: after a tap or click (including the app's own focus moves that follow), none is drawn. */
+.is-pointer :focus-visible, .is-pointer .choice input:focus-visible + span { outline: none; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 /* Name plate */
@@ -109,7 +114,7 @@ button { font: inherit; color: inherit; }
 .confirm {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
   padding: 10px 12px;
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: 8px;
   background: var(--surface);
 }
@@ -119,7 +124,7 @@ button { font: inherit; color: inherit; }
 /* Buttons */
 .btn {
   appearance: none;
-  border: 1px solid var(--line);
+  border: 0;
   background: var(--surface);
   border-radius: 8px;
   padding: 10px 18px;
@@ -131,15 +136,14 @@ button { font: inherit; color: inherit; }
 }
 /* Raised buttons: a solid edge underneath, --lip-size tall in a darker shade of the button, pressed flat while held.
    The edge is a shadow, so it adds no height and moves nothing around it. */
-.btn, .course-card, .row { --lip-size: 4px; }
-.opt { --lip-size: 3px; }
-.btn:active:not(:disabled), .course-card:active, .row:active:not(:disabled) { --lip-size: 1px; transform: translateY(3px); }
-.opt:active:not(:disabled) { --lip-size: 1px; transform: translateY(2px); }
-.btn:hover:not(:disabled) { border-color: var(--muted); }
-.btn.primary { background: var(--course); color: var(--on-neon); border-color: var(--course); --lip-color: color-mix(in srgb, var(--course) 50%, #000); }
+.btn, .course-card, .row { --lip-size: 6px; }
+.opt { --lip-size: 4px; }
+.btn:active:not(:disabled), .course-card:active, .row:active:not(:disabled) { --lip-size: 2px; transform: translateY(4px); }
+.opt:active:not(:disabled) { --lip-size: 1px; transform: translateY(3px); }
+.btn.primary { background: var(--course); color: var(--off-white); text-shadow: 0 1px 2px rgba(0, 0, 0, .45); --lip-color: var(--course-shade); }
 .btn.primary:hover:not(:disabled) { opacity: .9; }
-.btn.primary:disabled { background: var(--seg-off); border-color: var(--seg-off); color: var(--muted); opacity: 1; }
-.btn.danger { background: var(--bad); border-color: var(--bad); color: var(--surface); --lip-color: color-mix(in srgb, var(--bad) 50%, #000); }
+.btn.primary:disabled { background: var(--seg-off); color: var(--muted); text-shadow: none; opacity: 1; }
+.btn.danger { background: var(--bad); color: var(--surface); --lip-color: color-mix(in srgb, var(--bad) 62%, #000); }
 .btn.small { min-height: 36px; padding: 6px 12px; font-size: var(--step--1); }
 .btn:disabled { opacity: .4; cursor: default; box-shadow: none; }
 .link-btn {
@@ -154,7 +158,7 @@ button { font: inherit; color: inherit; }
 /* Panels */
 .panel {
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: 14px;
   box-shadow: var(--shadow);
   padding: 22px;
@@ -166,8 +170,8 @@ button { font: inherit; color: inherit; }
 :where(.panel) h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step-2); line-height: 1.15; text-wrap: balance; }
 :where(.panel) p { margin: 0; }
 
-.bar { display: block; height: 4px; border-radius: 2px; background: var(--seg-off); overflow: hidden; }
-.bar span { display: block; height: 100%; background: var(--course-line); transform: translateX(-100%); transition: transform .25s cubic-bezier(.25, 1, .5, 1); }
+.bar { display: block; height: 6px; border-radius: 3px; background: var(--seg-off); overflow: hidden; }
+.bar span { display: block; height: 100%; border-radius: inherit; background: var(--course-line); transform: translateX(-100%); transition: transform .25s cubic-bezier(.25, 1, .5, 1); }
 
 /* Courses (home) */
 .courses { display: grid; gap: 12px; }
@@ -179,7 +183,7 @@ button { font: inherit; color: inherit; }
   width: 100%;
   text-align: left;
   padding: 18px 20px;
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: 14px;
   background: var(--surface);
   --lip-color: var(--card-edge);
@@ -193,8 +197,9 @@ button { font: inherit; color: inherit; }
 .course-sub { grid-column: 1; grid-row: 2; color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
 .course-card .chev { grid-column: 2; grid-row: 1 / 3; align-self: center; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--course); color: var(--on-neon); }
 .course-card .chev svg { display: block; width: 20px; height: 20px; }
-.course-card .bar { grid-column: 1 / -1; grid-row: 3; height: 6px; border-radius: 3px; }
-.chev { font-size: 1.5rem; line-height: 1; color: var(--muted); }
+.course-card .bar { grid-column: 1 / -1; grid-row: 3; height: 8px; border-radius: 4px; }
+.chev { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--course-shade); color: var(--ink); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .55); }
+.chev svg { display: block; width: 16px; height: 16px; }
 .secondary { display: flex; justify-content: center; }
 
 /* Section and unit lists */
@@ -234,7 +239,7 @@ button { font: inherit; color: inherit; }
   width: 100%;
   min-height: 60px;
   padding: 12px 16px;
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: 14px;
   background: var(--surface);
   --lip-color: var(--card-edge);
@@ -242,6 +247,7 @@ button { font: inherit; color: inherit; }
   color: var(--ink);
   text-align: left;
   cursor: pointer;
+  transition: background-color .25s ease-out;
 }
 .row-label { grid-column: 1; font-family: var(--font-display); font-weight: 600; font-size: var(--step--1); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
 .row-title { grid-column: 1; font-weight: 700; font-size: var(--step-1); }
@@ -252,16 +258,41 @@ button { font: inherit; color: inherit; }
   display: flex; align-items: center; gap: 10px;
   color: var(--muted); font-size: var(--step--1); font-weight: 700; font-variant-numeric: tabular-nums;
 }
-.section-row { grid-template-columns: minmax(0, 1fr) 24px; }
+.section-row { grid-template-columns: minmax(0, 1fr) 28px; }
 .section-row .row-side { grid-row: 1; justify-content: center; }
 .section-row.has-label .row-side { grid-row: 1 / span 2; }
 .section-row .bar { grid-column: 1 / -1; }
 .row.is-locked .row-label, .row.is-locked .row-title, .row.is-locked .row-sub { color: var(--muted); opacity: .9; }
 .row[aria-expanded="true"] { background: color-mix(in srgb, var(--course) 8%, var(--surface)); }
-.unit-progress { display: block; width: 72px; height: 8px; border-radius: 4px; background: var(--seg-off); overflow: hidden; }
-.unit-progress span { display: block; height: 100%; border-radius: 4px; background: var(--course-line); }
+.unit-progress { display: block; width: 72px; height: 10px; border-radius: 5px; background: var(--seg-off); overflow: hidden; }
+.unit-progress span { display: block; height: 100%; border-radius: 5px; background: var(--lime); transform: translateX(-100%); transition: transform .5s cubic-bezier(.25, 1, .5, 1); }
+/* Unlocked cards (both courses, open sections and units) are the course colour on a deeper course-colour edge.
+   Their text is off-white with the pop-ups' soft shadow behind it; their progress bars fill lime green over a shaded course-colour track. Locked cards stay grey. */
+.course-card, .row:not(.is-locked) {
+  background: var(--course);
+  --lip-color: var(--course-shade);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .45);
+}
+.course-card .chev { background: var(--course-shade); color: var(--ink); }
+.course-card:hover, .row:not(.is-locked):hover { background: color-mix(in srgb, var(--course) 88%, #fff); }
+.course-card:active, .row:not(.is-locked):active, .row:not(.is-locked)[aria-expanded="true"] { background: color-mix(in srgb, var(--course) 85%, #000); }
+.course-card .bar, .row .bar, .unit-progress { background: var(--course-shade); }
+.course-card .bar span, .row .bar span, .unit-progress span { background: var(--lime); }
+/* All text and arrows on the course-coloured cards are the same off-white as the titles (the owner's choice, low contrast on the neon). */
+.course-card .course-sub, .course-card .chev, .row:not(.is-locked) .row-label, .row:not(.is-locked) .row-sub, .row:not(.is-locked) .row-side,
+.row:not(.is-locked) .chev { color: var(--ink); }
 /* Progress tracks are recessed: the empty part sits in a shallow groove. */
 .bar, .unit-bar, .unit-progress { box-shadow: inset 0 1px 2px rgba(0, 0, 0, .55); }
+/* The filled part reads as a raised tube in that groove: a lighter shine along its upper part and a slightly darker lower edge. */
+.bar span, .unit-bar span, .unit-progress span { position: relative; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .18); }
+.bar span::after, .unit-bar span::after, .unit-progress span::after {
+  content: "";
+  position: absolute;
+  left: 4px; right: 4px; top: 20%;
+  height: 25%; min-height: 1px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .55);
+}
 
 /* Pop-ups: floating over the unit list, or under the X and Hint buttons while playing */
 .rows-wrap { position: relative; }
@@ -277,7 +308,7 @@ button { font: inherit; color: inherit; }
   color: var(--off-white);
   /* A soft dark shadow helps the off-white text read on the neon. */
   text-shadow: 0 1px 2px rgba(0, 0, 0, .45);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), var(--pop-shadow);
+  box-shadow: var(--pop-shadow);
   animation: bubble-in .15s ease-out;
 }
 .bubble::before {
@@ -292,14 +323,12 @@ button { font: inherit; color: inherit; }
 .bubble.is-above::before { top: auto; bottom: -6px; }
 .bubble :focus-visible { outline-color: var(--on-neon); }
 .bubble p { position: relative; margin: 0; font-weight: 700; }
-.bubble .btn, .bubble .btn.primary { position: relative; width: 100%; min-height: 48px; font-size: var(--step-1); background: var(--off-white); color: var(--course); border-color: var(--off-white); text-shadow: none; --lip-color: #c3ccd3; }
-.bubble.is-locked { background: var(--locked-pop); color: var(--locked-ink); text-shadow: none; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), var(--pop-shadow); }
+.bubble .btn, .bubble .btn.primary { position: relative; width: 100%; min-height: 48px; font-size: var(--step-1); background: var(--off-white); color: var(--course); text-shadow: none; --lip-color: #c3ccd3; }
+.bubble.is-locked { background: var(--locked-pop); color: var(--locked-ink); text-shadow: none; box-shadow: var(--pop-shadow); }
 .bubble .bubble-name { font-size: var(--step-1); }
 .bubble .bubble-name + p { font-weight: 400; }
 @keyframes bubble-in { from { opacity: 0; transform: translateY(-4px); } }
-.status-perfect { color: var(--good); }
-.status-progress { color: var(--course-line); }
-.lock { display: inline-flex; color: var(--muted); }
+.lock { display: inline-flex; justify-content: center; width: 28px; color: var(--muted); }
 .lock svg { display: block; width: 16px; height: 16px; }
 
 /* Celebrations. Sparks fly in a fixed layer above the page, so no list clips them and nothing moves. */
@@ -309,19 +338,17 @@ button { font: inherit; color: inherit; }
 /* On Check: the right answer's letter pops, a wrong pick shakes (started from script on the answered card). */
 @keyframes key-pop { 40% { transform: scale(1.3); } }
 @keyframes opt-shake { 20% { transform: translateX(-6px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
-/* The unit just completed: its row flashes and Completed pops in. */
+/* The unit just completed: its row flashes and its bar fills. */
 .row.is-flash { animation: row-flash 1.1s ease-out; }
-@keyframes row-flash { from { background-color: color-mix(in srgb, var(--course) 28%, var(--surface)); } }
-.status-perfect.is-new { animation: status-pop .45s cubic-bezier(.22, 1, .36, 1); }
-@keyframes status-pop { from { transform: scale(.6); opacity: 0; } 60% { transform: scale(1.12); opacity: 1; } }
+@keyframes row-flash { from { background-color: color-mix(in srgb, var(--course) 45%, #fff); } }
 /* A row that has just unlocked: the lock pops open over its usual contents, which then fade in. */
 .row-side { position: relative; }
 .row-side > *, .row .bar { transition: opacity .25s ease-out; }
 .row-title, .row-label, .row-sub { transition: color .3s ease-out; }
+.row.is-unlocking { background: var(--surface); --lip-color: var(--card-edge); text-shadow: none; }
 .row.is-unlocking .row-side > :not(.unlock-fx), .row.is-unlocking .bar { opacity: 0; }
 .row.is-unlocking .row-title, .row.is-unlocking .row-label, .row.is-unlocking .row-sub { color: var(--muted); }
 .unlock-fx { position: absolute; right: 0; top: 50%; margin-top: -8px; color: var(--course-line); animation: unlock .9s var(--delay, 0s) cubic-bezier(.22, 1, .36, 1) both; }
-.section-row .unlock-fx { right: 4px; }
 .unlock-fx .lock-shackle { transform-origin: 11.25px 7px; animation: shackle .9s var(--delay, 0s) cubic-bezier(.22, 1, .36, 1) both; }
 @keyframes unlock { 25% { transform: scale(1.35); } 65% { transform: scale(1.2); opacity: 1; } to { transform: scale(.5); opacity: 0; } }
 @keyframes shackle { 0%, 15% { transform: none; } 40%, to { transform: translateY(-2.5px) rotate(-25deg); } }
@@ -346,8 +373,8 @@ button { font: inherit; color: inherit; }
 }
 .icon-btn:hover { color: var(--ink); }
 .icon-btn svg { display: block; width: 20px; height: 20px; }
-.hint-btn { margin-left: 0; margin-right: -8px; color: var(--course-line); }
-.hint-btn:hover:not(:disabled) { color: var(--ink); }
+.hint-btn { margin-left: 0; margin-right: -8px; color: var(--muted); }
+.hint-btn:hover:not(:disabled) { color: var(--course-line); }
 .hint-btn:disabled { opacity: .4; cursor: default; }
 .hint-btn svg { width: 22px; height: 22px; }
 .play-pop { width: min(300px, calc(100% - 24px)); }
@@ -364,8 +391,8 @@ button { font: inherit; color: inherit; }
 .progress-text { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: var(--step--1); color: var(--muted); font-variant-numeric: tabular-nums; }
 .progress-text strong { color: var(--ink); }
 
-.unit-bar { height: 10px; border-radius: 5px; background: var(--seg-off); overflow: hidden; }
-.unit-bar span { display: block; height: 100%; border-radius: 5px; background: var(--course-line); transform: translateX(-100%); transition: transform .25s cubic-bezier(.25, 1, .5, 1); }
+.unit-bar { height: 12px; border-radius: 6px; background: var(--course-shade); overflow: hidden; }
+.unit-bar span { display: block; height: 100%; border-radius: 6px; background: var(--lime); transform: translateX(-100%); transition: transform .25s cubic-bezier(.25, 1, .5, 1); }
 .phase-label { margin: -8px 0 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step--1); text-transform: uppercase; letter-spacing: .1em; color: var(--course-line); }
 
 .qtext {
@@ -389,33 +416,36 @@ button { font: inherit; color: inherit; }
   width: 100%;
   text-align: left;
   padding: 12px 14px;
-  border: 1.5px solid var(--line);
+  border: 0;
   border-radius: 10px;
-  background: var(--surface);
+  background: var(--surface-raised);
   color: var(--ink);
   font-size: var(--step-1);
   line-height: 1.4;
   cursor: pointer;
-  --lip-color: color-mix(in srgb, var(--line) 70%, #000);
-  box-shadow: 0 var(--lip-size) 0 var(--lip-color);
-  transition: border-color .15s ease, background-color .15s ease, opacity .15s ease;
+  --lip-color: var(--card-edge);
+  box-shadow: 0 var(--lip-size) 0 var(--lip-color), 0 8px 16px rgba(0, 0, 0, .3);
+  transition: background-color .15s ease, opacity .15s ease;
 }
-.opt:hover:not(:disabled) { border-color: var(--course-line); }
+.opt:not(.is-selected):hover:not(:disabled) { background: color-mix(in srgb, var(--course) 8%, var(--surface-raised)); }
 .opt:disabled { cursor: default; color: var(--ink); }
 .opt .key {
   display: inline-grid; place-items: center;
   width: 30px; height: 30px;
   border-radius: 6px;
-  border: 1.5px solid var(--line);
+  background: var(--seg-off);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .55);
   font-family: var(--font-mono); font-weight: 500; font-size: var(--step-0);
 }
 .opt .txt { min-width: 0; padding-top: 2px; overflow-wrap: anywhere; }
-.opt.is-selected { border-color: var(--course-line); background: color-mix(in srgb, var(--course) 14%, var(--surface)); --lip-color: color-mix(in srgb, var(--course) 45%, #000); box-shadow: inset 0 0 0 1px var(--course-line), 0 var(--lip-size) 0 var(--lip-color); }
-.opt.is-selected .key { border-color: var(--course-line); background: var(--course); color: var(--on-neon); }
-.opt.is-correct { border-color: var(--good); background: var(--good-bg); --lip-color: color-mix(in srgb, var(--good) 45%, #000); }
-.opt.is-correct .key { border-color: var(--good); background: var(--good); color: var(--surface); }
-.opt.is-wrong { border-color: var(--bad); background: var(--bad-bg); --lip-color: color-mix(in srgb, var(--bad) 45%, #000); }
-.opt.is-wrong .key { border-color: var(--bad); background: var(--bad); color: var(--surface); }
+.opt.is-selected { --face: color-mix(in srgb, var(--course) 35%, var(--surface-raised)); }
+/* A coloured answer's edge is a darker shade of its own top, like every other raised thing. */
+.opt.is-selected, .opt.is-correct, .opt.is-wrong { background: var(--face); --lip-color: color-mix(in srgb, var(--face) 55%, #000); }
+.opt.is-selected .key { background: var(--course); color: var(--on-neon); box-shadow: none; }
+.opt.is-correct { --face: color-mix(in srgb, var(--good) 35%, var(--surface-raised)); }
+.opt.is-correct .key { background: var(--good); color: var(--surface); box-shadow: none; }
+.opt.is-wrong { --face: color-mix(in srgb, var(--bad) 35%, var(--surface-raised)); }
+.opt.is-wrong .key { background: var(--bad); color: var(--surface); box-shadow: none; }
 .opt.is-dim { opacity: .55; }
 .opt.is-removed { opacity: .35; }
 .opt.is-removed .txt { text-decoration: line-through; }
@@ -435,13 +465,13 @@ legend { padding: 0; margin-bottom: 8px; }
 .choice span {
   display: grid; gap: 2px; height: 100%;
   padding: 12px 14px;
-  border: 1.5px solid var(--line);
   border-radius: 10px;
+  background: var(--surface-raised);
 }
 .choice span b { font-size: var(--step-1); }
 .choice span small { color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
-.choice:hover span { border-color: var(--muted); }
-.choice input:checked + span { border-color: var(--course-line); background: color-mix(in srgb, var(--course) 14%, var(--surface)); box-shadow: inset 0 0 0 1px var(--course-line); }
+.choice:hover span { background: color-mix(in srgb, var(--course) 8%, var(--surface-raised)); }
+.choice input:checked + span { background: color-mix(in srgb, var(--course) 18%, var(--surface-raised)); }
 .choice input:focus-visible + span { outline: 3px solid var(--course-line); outline-offset: 2px; }
 .home-actions { display: grid; gap: 12px; justify-items: start; }
 
@@ -456,7 +486,6 @@ legend { padding: 0; margin-bottom: 8px; }
   left: 0; right: 0; bottom: 0;
   z-index: 10;
   background: var(--surface);
-  border-top: 1px solid var(--line);
   box-shadow: 0 -8px 24px rgba(0, 0, 0, .45);
   padding-top: 12px;
   padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
@@ -464,31 +493,34 @@ legend { padding: 0; margin-bottom: 8px; }
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 .dock-inner { max-width: 720px; margin: 0 auto; }
+/* The button lines up with the answer cards: the page column's width, inset by the question card's padding. */
+#dock .dock-inner { max-width: calc(720px - 32px); padding-inline: 22px; }
 .dock .btn { display: grid; place-items: center; width: 100%; min-height: 54px; font-size: var(--step-1); line-height: 1.2; }
 /* After Check the button takes the answer's own green or red at once.
    (No colour transition: it restarts on every Check and Next, and piled up when cards were answered faster than frames.) */
-.dock .btn[data-tone="good"] { background: var(--good); border-color: var(--good); --lip-color: color-mix(in srgb, var(--good) 50%, #000); }
-.dock .btn[data-tone="bad"] { background: var(--bad); border-color: var(--bad); --lip-color: color-mix(in srgb, var(--bad) 50%, #000); }
+.dock .btn[data-tone="good"] { background: var(--good); --lip-color: color-mix(in srgb, var(--good) 62%, #000); }
+.dock .btn[data-tone="bad"] { background: var(--bad); --lip-color: color-mix(in srgb, var(--bad) 62%, #000); }
 
 .foot { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px; }
 .foot p { margin: 0; }
 .kbd-hint { display: none; color: var(--muted); font-size: var(--step--1); }
 @media (hover: hover) and (pointer: fine) { .kbd-hint { display: block; } }
-kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); }
+kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-radius: 4px; background: var(--seg-off); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .55); }
 
-.error { border-color: var(--bad); }
 
 @media (max-width: 480px) {
   .wrap { padding-block: 16px 32px; }
   .view { gap: 16px; }
   .panel { padding: 16px; gap: 16px; border-radius: 12px; }
+  #dock .dock-inner { padding-inline: 16px; }
   .qtext { font-size: var(--step-1); }
   .opt { font-size: var(--step-0); padding: 10px 12px; gap: 4px 12px; }
   .course-card { padding: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .bar span, .unit-bar span, .opt { transition: none; }
-  .bubble, .spark, .row.is-flash, .status-perfect.is-new, .unlock-fx, .unlock-fx .lock-shackle { animation: none; }
+  .bubble, .spark, .row.is-flash, .unlock-fx, .unlock-fx .lock-shackle { animation: none; }
+  .unit-progress span { transition: none; }
 }
 </style>
 
@@ -666,6 +698,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
   var ORDER_LABEL = { sequential: 'In order', random: 'Random' };
   var DOT = ' \u00b7 ';
   var DASH = '\u2014';
+  var CHEV_SVG = '<svg viewBox="0 0 24 24"><path d="M9 4.5 16.5 12 9 19.5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var LOCK_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><path class="lock-shackle" d="M4.75 7V5.25a3.25 3.25 0 0 1 6.5 0V7" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="3" y="7" width="10" height="7.5" rx="1.6" fill="currentColor"/></svg>';
 
   function $(id) { return document.getElementById(id); }
@@ -1202,7 +1235,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     if (view === 'play') {
       var a = ust.attempt;
       if (a.choice === null) setDock('Check', playSel === null);
-      else setDock(playIsLastCard() ? 'Finish unit' : 'Next', false, a.choice === playQuestion().answer ? 'good' : 'bad');
+      else setDock(playIsLastCard() ? 'Finish' : 'Next', false, a.choice === playQuestion().answer ? 'good' : 'bad');
     } else if (view === 'card') {
       var r = state.run;
       if (r.choice === null) setDock('Check', runSel === null);
@@ -1311,8 +1344,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
         lock.appendChild(el('span', 'sr-only', 'Locked'));
         side.appendChild(lock);
       } else {
-        side.appendChild(el('span', 'chev', '\u203a'));
-        side.lastChild.setAttribute('aria-hidden', 'true');
+        side.appendChild(chevEl());
       }
       row.appendChild(side);
       row.addEventListener('click', function () { push({ v: 'units', c: course.key, s: i }); });
@@ -1326,7 +1358,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
 
   var scrollToUnit = null;
 
-  // What a unit row shows on the right: lock, status, or a bar for the best first-try score.
+  // What a unit row shows on the right: the lock, or a bar that is full once the unit is completed and empty until then.
   function unitSide(u, locked) {
     var side = el('span', 'row-side');
     if (locked) {
@@ -1336,26 +1368,24 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       side.appendChild(lock);
       return side;
     }
-    var s = scoreOf(u);
-    if (ust.attempt && ust.attempt.unit === u.key) {
-      side.appendChild(el('span', 'status-progress', 'In progress'));
-    } else if (!s) {
-      side.appendChild(el('span', '', 'Not started'));
-    } else if (s.best === u.ids.length) {
-      side.appendChild(el('span', 'status-perfect', 'Completed'));
-    } else {
-      var bar = el('span', 'unit-progress');
-      bar.setAttribute('role', 'img');
-      bar.setAttribute('aria-label', 'Best score ' + s.best + ' of ' + u.ids.length);
-      var fill = el('span');
-      fill.style.width = (s.best / u.ids.length * 100) + '%';
-      bar.appendChild(fill);
-      side.appendChild(bar);
-    }
-    var chev = el('span', 'chev', '\u203a');
-    chev.setAttribute('aria-hidden', 'true');
-    side.appendChild(chev);
+    var done = isPerfect(u);
+    var bar = el('span', 'unit-progress');
+    bar.setAttribute('role', 'img');
+    bar.setAttribute('aria-label', done ? 'Completed' : ust.attempt && ust.attempt.unit === u.key ? 'In progress' : 'Not completed yet');
+    var fill = el('span');
+    setFill(fill, done ? 1 : 0);
+    bar.appendChild(fill);
+    side.appendChild(bar);
+    side.appendChild(chevEl());
     return side;
+  }
+
+  // The arrow on a card, in its shaded disc.
+  function chevEl() {
+    var chev = el('span', 'chev');
+    chev.setAttribute('aria-hidden', 'true');
+    chev.innerHTML = CHEV_SVG;
+    return chev;
   }
 
   function renderUnits(course, sec) {
@@ -1629,8 +1659,13 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       celebrate.unit = null;
       if (!reduceMotion()) {
         row.classList.add('is-flash');
-        var status = row.querySelector('.status-perfect');
-        if (status) status.classList.add('is-new');
+        // Its bar fills from empty to lime green.
+        var fill = row.querySelector('.unit-progress span');
+        fill.style.transition = 'none';
+        setFill(fill, 0);
+        void fill.offsetWidth;
+        fill.style.transition = '';
+        setFill(fill, 1);
       }
     }
     celebrate.unlocked = celebrate.unlocked.filter(function (key) {
@@ -1858,6 +1893,10 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     $('done-pct').textContent = pct(r.correct, r.answered);
     $('done-count').textContent = scoreLine(r.correct, r.answered) + ' this run';
   }
+
+  // Focus rings only while the keyboard is in use: a tap or click turns them off, any key turns them back on.
+  document.addEventListener('pointerdown', function () { document.documentElement.classList.add('is-pointer'); }, true);
+  document.addEventListener('keydown', function () { document.documentElement.classList.remove('is-pointer'); }, true);
 
   // ---- Keyboard: A-D or 1-4 choose, Enter checks, Enter or Right arrow moves on
 
