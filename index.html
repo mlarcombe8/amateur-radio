@@ -180,7 +180,8 @@ button { font: inherit; color: inherit; }
 .course-card {
   appearance: none;
   display: grid;
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px 12px;
   width: 100%;
   text-align: left;
   padding: 18px 20px;
@@ -192,10 +193,10 @@ button { font: inherit; color: inherit; }
   cursor: pointer;
 }
 .course-card:hover { border-color: var(--accent); }
-.course-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.course-name { font-family: var(--font-display); font-weight: 700; font-size: var(--step-3); line-height: 1; }
-.course-sub { color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
-.course-card .bar { height: 6px; border-radius: 3px; }
+.course-name { grid-column: 1; grid-row: 1; font-family: var(--font-display); font-weight: 700; font-size: var(--step-3); line-height: 1; }
+.course-sub { grid-column: 1; grid-row: 2; color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
+.course-card .chev { grid-column: 2; grid-row: 1 / 3; align-self: center; }
+.course-card .bar { grid-column: 1 / -1; grid-row: 3; height: 6px; border-radius: 3px; }
 .chev { font-size: 1.5rem; line-height: 1; color: var(--muted); }
 .secondary { display: flex; justify-content: center; }
 
@@ -241,7 +242,9 @@ button { font: inherit; color: inherit; }
   color: var(--muted); font-size: var(--step--1); font-weight: 700; font-variant-numeric: tabular-nums;
 }
 .section-row { grid-template-columns: minmax(0, 1fr) 24px; }
-.section-row .row-side { justify-content: center; }
+.section-row .row-side { grid-row: 1; justify-content: center; }
+.section-row.has-label .row-side { grid-row: 1 / span 2; }
+.section-row .bar { grid-column: 1 / -1; }
 .row.is-locked .row-label, .row.is-locked .row-title, .row.is-locked .row-sub { color: var(--muted); opacity: .7; }
 .row[aria-expanded="true"] { background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
 .unit-progress { display: block; width: 72px; height: 8px; border-radius: 4px; background: var(--seg-off); overflow: hidden; }
@@ -462,13 +465,15 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     </header>
     <div class="courses">
       <button class="course-card" id="course-basic" type="button">
-        <span class="course-head"><span class="course-name">Basic</span><span class="chev" aria-hidden="true">&rsaquo;</span></span>
+        <span class="course-name">Basic</span>
         <span class="course-sub"></span>
+        <span class="chev" aria-hidden="true">&rsaquo;</span>
         <span class="bar" role="img"><span></span></span>
       </button>
       <button class="course-card" id="course-advanced" type="button">
-        <span class="course-head"><span class="course-name">Advanced</span><span class="chev" aria-hidden="true">&rsaquo;</span></span>
+        <span class="course-name">Advanced</span>
         <span class="course-sub"></span>
+        <span class="chev" aria-hidden="true">&rsaquo;</span>
         <span class="bar" role="img"><span></span></span>
       </button>
     </div>
@@ -1274,12 +1279,13 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       var row = el('button', 'row section-row' + (locked ? ' is-locked' : ''));
       row.type = 'button';
       if (nameOf(sec.key)) {
+        row.classList.add('has-label');
         row.appendChild(el('span', 'row-label', 'Section ' + sec.n));
         row.appendChild(el('span', 'row-title', nameOf(sec.key)));
       } else {
         row.appendChild(el('span', 'row-title', 'Section ' + sec.n));
       }
-      row.appendChild(barEl(sec.units.length ? perfect / sec.units.length : 0, perfect + ' of ' + sec.units.length + ' units completed'));
+      if (!locked) row.appendChild(barEl(sec.units.length ? perfect / sec.units.length : 0, perfect + ' of ' + sec.units.length + ' units completed'));
       var side = el('span', 'row-side');
       if (locked) {
         var lock = el('span', 'lock');
