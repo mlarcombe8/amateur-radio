@@ -139,6 +139,10 @@ button { font: inherit; color: inherit; }
 /* Raised buttons: a solid edge underneath, --lip-size tall in a darker shade of the button, pressed flat while held.
    The edge is a shadow, so it adds no height and moves nothing around it. */
 .btn, .course-card, .row { --lip-size: 6px; }
+/* Every card and answer is drawn in the same layer, top to bottom, so each one covers the drop shadow of the one above.
+   Without this, a card that needs its own layer (a completed card's gloss, a dimmed answer, a pressed or shaking one) was
+   drawn after its plain neighbours, and its shadow fell across the card below. */
+.course-card, .row, .opt { position: relative; }
 .opt { --lip-size: 4px; }
 .btn:active:not(:disabled), .course-card:active, .row:active:not(:disabled) { --lip-size: 2px; transform: translateY(4px); }
 .opt:active:not(:disabled) { --lip-size: 1px; transform: translateY(3px); }
@@ -177,7 +181,7 @@ button { font: inherit; color: inherit; }
 .bar span { display: block; height: 100%; border-radius: inherit; background: var(--course-line); transform: translateX(-100%); transition: transform .25s cubic-bezier(.25, 1, .5, 1); }
 
 /* Courses (home) */
-.courses { display: grid; gap: 12px; }
+.courses { display: grid; gap: 18px; }
 .course-card {
   appearance: none;
   display: grid;
@@ -232,7 +236,7 @@ button { font: inherit; color: inherit; }
 @media (max-width: 359px) { .view-title { font-size: 1.75rem; } }
 
 /* Each section and unit is its own raised card, like the course cards. */
-.rows { display: grid; gap: 12px; }
+.rows { display: grid; gap: 18px; }
 .row {
   appearance: none;
   display: grid;
@@ -269,7 +273,7 @@ button { font: inherit; color: inherit; }
 .row[aria-expanded="true"] { background: color-mix(in srgb, var(--course) 8%, var(--surface)); }
 /* Units are square cards on a winding path, one under another: centred, then half a card and a whole card to the left,
    back through the centre and out to the right, every eight units. The offset is `left`, so the press and flip keep `transform`. */
-.unit-path { justify-items: start; gap: 22px; }
+.unit-path { justify-items: start; gap: 28px; }
 .unit-sq {
   --sq: 76px;
   grid-template-columns: none;
@@ -300,12 +304,15 @@ button { font: inherit; color: inherit; }
 .unit-sq.is-done .star-fill { transform: none; }
 .unit-sq.is-done:not(.is-completing) .star-base { visibility: hidden; }
 .unit-sq.is-done:not(.is-completing) .star, .unit-sq.is-popping .star { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .45)); }
-.unit-sq.is-done::before {
+/* Every completed card (unit, section, or whole course) has the same gloss, under its contents: a glare band across the
+   middle third of the card at 45 degrees, the shine's angle, so both sides of the card stay clear. Like the shine, it is
+   brightest in its centre and fades softly to nothing on both sides, so it reads as the shine come to rest. */
+.course-card.is-done, .row.is-done { position: relative; isolation: isolate; }
+.course-card.is-done::before, .row.is-done::before {
   content: "";
-  position: absolute; inset: 0;
+  position: absolute; inset: 0; z-index: -1;
   border-radius: inherit;
-  background: linear-gradient(165deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, .22) 47%, rgba(255, 255, 255, 0) 48%);
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, .4);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0) 33.3%, rgba(255, 255, 255, .6) 50%, rgba(255, 255, 255, 0) 66.7%);
   pointer-events: none;
 }
 /* Unlocked cards (both courses, open sections and units) are the course colour on a deeper course-colour edge.
@@ -385,17 +392,23 @@ button { font: inherit; color: inherit; }
 .unit-sq.is-completing .star-fill { animation: star-fill .35s var(--fx-delay, 0s) cubic-bezier(.33, 1, .68, 1) both; }
 @keyframes star-fill { from { transform: scale(0); } }
 .unit-sq.is-popping .star { animation: key-pop .34s cubic-bezier(.22, 1, .36, 1); }
-.unit-sq.is-completing::before { opacity: 0; }
-.unit-sq.is-completing.is-shining::before { opacity: 1; transition: opacity .45s ease-out .15s; }
-.unit-sq.is-shining::after {
+.course-card.is-completing::before, .row.is-completing::before { opacity: 0; }
+.course-card.is-completing.is-shining::before, .row.is-completing.is-shining::before { opacity: 1; transition: opacity .45s ease-out .15s; }
+.course-card.is-shining, .row.is-shining { overflow: hidden; }
+.course-card.is-shining::after, .row.is-shining::after {
   content: "";
-  position: absolute; top: -20%; bottom: -20%; left: -70%; width: 55%;
+  position: absolute; top: -20%; bottom: -20%; left: -60px; width: 42px;
   background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, .7), rgba(255, 255, 255, 0));
-  transform: skewX(-18deg);
-  animation: shine-sweep .6s cubic-bezier(.45, 0, .55, 1) both;
+  /* At 45 degrees like the gloss, moving straight from left to right at a steady speed. It fades in and out at the ends:
+     there the tilted band only clips a corner, which made it look as if it went from the top-left corner to the bottom-right. */
+  transform: skewX(-45deg);
+  animation: shine-sweep .6s linear both;
   pointer-events: none;
 }
-@keyframes shine-sweep { to { translate: 340% 0; } }
+@keyframes shine-sweep { 0% { left: -60px; opacity: 0; } 30%, 70% { opacity: 1; } 100% { left: 100px; opacity: 0; } }
+/* A completed section or course: the same shine and gloss across the wider, taller card. */
+.course-card.is-shining::after, .section-row.is-shining::after { left: -160px; width: 90px; animation: shine-sweep-wide .75s linear both; }
+@keyframes shine-sweep-wide { 0% { left: -160px; opacity: 0; } 20%, 80% { opacity: 1; } 100% { left: calc(100% + 70px); opacity: 0; } }
 /* A row that has just unlocked: it looks locked (grey, with the grey lock) until its moment, then the lock turns the course
    colour, pops and opens on its left side. Its usual contents stay hidden until the card has turned over. */
 .row-side { position: relative; }
@@ -630,7 +643,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
 @media (prefers-reduced-motion: reduce) {
   .bar span, .unit-bar span, .opt { transition: none; }
   .bubble, .spark, .unlock-fx, .unlock-fx .lock-shackle, .row.is-flipping, .row.is-flipping > * { animation: none; }
-  .unit-sq.is-completing .star-fill, .unit-sq.is-popping .star, .unit-sq.is-shining::after { animation: none; }
+  .unit-sq.is-completing .star-fill, .unit-sq.is-popping .star, .course-card.is-shining::after, .row.is-shining::after { animation: none; }
 }
 </style>
 
@@ -734,7 +747,6 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     <h2 class="qtext" id="play-text" tabindex="-1"></h2>
     <div class="opts" id="play-opts" role="group" aria-labelledby="play-text"></div>
     <p class="sr-only" id="play-verdict" role="status" aria-live="polite"></p>
-    <p class="kbd-hint">Keys: <kbd>A</kbd>&ndash;<kbd>D</kbd> or <kbd>1</kbd>&ndash;<kbd>4</kbd> to choose, <kbd>Enter</kbd> to check, then <kbd>Enter</kbd> or <kbd>&rarr;</kbd> for the next question.</p>
   </section>
 
   <section class="panel" id="view-runsetup" hidden aria-labelledby="runsetup-title">
@@ -1360,6 +1372,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     }
     if (view === 'units') unitsFx();
     if (view === 'sections') sectionsFx();
+    if (view === 'home') homeFx();
   }
 
   // ---- Pinned action dock --------------------------------------------------
@@ -1458,6 +1471,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       var done = perfectCount(course.flat);
       card.querySelector('.course-sub').textContent = course.sections.length + ' sections' + DOT + total + ' units';
       setFill(card.querySelector('.bar span'), total ? done / total : 0);
+      card.classList.toggle('is-done', total > 0 && done === total);
       card.querySelector('.bar').setAttribute('aria-label', done + ' of ' + total + ' units completed');
     });
   }
@@ -1501,7 +1515,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     course.sections.forEach(function (sec, i) {
       var perfect = perfectCount(sec.units);
       var locked = !isUnlocked(sec.units[0]);
-      var row = el('button', 'row section-row' + (locked ? ' is-locked' : ''));
+      var row = el('button', 'row section-row' + (locked ? ' is-locked' : perfect === sec.units.length ? ' is-done' : ''));
       row.type = 'button';
       if (nameOf(sec.key)) {
         row.classList.add('has-label');
@@ -1754,11 +1768,15 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     var score = a.firstCorrect;
     var wasPerfect = isPerfect(u);
     var lockedBefore = u.course.flat.filter(function (x) { return !isUnlocked(x); });
+    var sectionDoneBefore = u.section.units.every(isPerfect);
+    var courseDoneBefore = u.course.flat.every(isPerfect);
     if (!prev || score > prev.best) ust.scores[u.key] = { best: score, size: u.ids.length, fp: u.fp };
     ust.attempt = null;
     saveUnits();
     celebrate = {
       unit: !wasPerfect && isPerfect(u) ? u.key : null,
+      section: !sectionDoneBefore && u.section.units.every(isPerfect) ? u.section.key : null,
+      course: !courseDoneBefore && u.course.flat.every(isPerfect) ? u.course.key : null,
       unlocked: lockedBefore.filter(isUnlocked).map(function (x) { return x.key; })
     };
     scrollToUnit = u.key;
@@ -1808,8 +1826,9 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     }
   }
 
-  // Set when a unit ends: the unit newly completed, and units it unlocked.
-  // The unit list it returns to plays them; an unlocked section waits for the Sections screen.
+  // Set when a unit ends: the unit newly completed, the section and course it completed, and the units it unlocked.
+  // The unit list it returns to plays the unit's moment; a completed or unlocked section waits for the Sections screen,
+  // and a completed course for the Courses screen.
   var celebrate = null;
 
   // A row that has just unlocked: its lock pops open with sparks, then the card is pressed like a button, springs up and turns
@@ -1860,16 +1879,38 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     });
   }
 
+  // A section or course just completed: a shine sweeps across its card and leaves it glossy, like a completed unit.
+  function shineFx(card, delay) {
+    if (!card || reduceMotion()) return;
+    card.classList.add('is-completing');
+    setTimeout(function () { card.classList.add('is-shining'); }, delay);
+    setTimeout(function () { card.classList.remove('is-completing', 'is-shining'); }, delay + 900);
+  }
+
   function sectionsFx() {
     if (!celebrate) return;
     var course = courses[top().c];
     var rows = document.querySelectorAll('#sections-list .row');
+    // A completed section shines first; the section it unlocked follows once the shine has passed.
+    var unlockAt = 200;
+    course.sections.forEach(function (sec, i) {
+      if (sec.key !== celebrate.section) return;
+      celebrate.section = null;
+      shineFx(rows[i], 200);
+      unlockAt = 1100;
+    });
     celebrate.unlocked = celebrate.unlocked.filter(function (key) {
       var u = unitByKey[key];
       if (u.course !== course || u.section.units[0] !== u) return true;
-      unlockFx(rows[u.section.n - 1], 200);
+      unlockFx(rows[u.section.n - 1], unlockAt);
       return false;
     });
+  }
+
+  function homeFx() {
+    if (!celebrate || !celebrate.course) return;
+    shineFx($('course-' + celebrate.course), 200);
+    celebrate.course = null;
   }
 
   // ---- Hints: each one removes a wrong answer, so the third leaves only the right one.
@@ -2080,9 +2121,11 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     $('done-count').textContent = scoreLine(r.correct, r.answered) + ' this run';
   }
 
-  // Focus rings only while the keyboard is in use: a tap or click turns them off, any key turns them back on.
+  // Focus rings only while the keyboard is used to move around: a tap or click turns them off, Tab turns them back on.
+  // The answer keys (A-D, 1-4, Enter, Right arrow) leave them as they are, so clicking an answer and then pressing a letter
+  // draws no ring on the clicked answer.
   document.addEventListener('pointerdown', function () { document.documentElement.classList.add('is-pointer'); }, true);
-  document.addEventListener('keydown', function () { document.documentElement.classList.remove('is-pointer'); }, true);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Tab') document.documentElement.classList.remove('is-pointer'); }, true);
 
   // ---- Keyboard: A-D or 1-4 choose, Enter checks, Enter or Right arrow moves on
 
@@ -2112,6 +2155,10 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     if (!checked && idx !== undefined) {
       e.preventDefault();
       if (view === 'play') selectPlay(idx); else selectRun(idx);
+      // If an answer had the focus, the newly chosen one takes it, so any ring shows on the choice, not the old answer.
+      var opts = $(view === 'play' ? 'play-opts' : 'q-opts');
+      var chosen = opts && opts.children[idx];
+      if (chosen && opts.contains(document.activeElement) && chosen.classList.contains('is-selected')) chosen.focus({ preventScroll: true });
       return;
     }
     if (e.key === 'Enter') {
