@@ -75,6 +75,8 @@ body {
 .wrap {
   max-width: 720px;
   margin: 0 auto;
+  /* Centred on a whole pixel, so nothing on the page sits half a pixel off in an odd-width window (see .unit-sq). */
+  margin-left: max(0px, round(down, (100% - 720px) / 2, 1px));
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 24px 40px;
@@ -267,7 +269,7 @@ button { font: inherit; color: inherit; }
 .row[aria-expanded="true"] { background: color-mix(in srgb, var(--course) 8%, var(--surface)); }
 /* Units are square cards on a winding path, one under another: centred, then half a card and a whole card to the left,
    back through the centre and out to the right, every eight units. The offset is `left`, so the press and flip keep `transform`. */
-.unit-path { justify-items: center; gap: 22px; }
+.unit-path { justify-items: start; gap: 22px; }
 .unit-sq {
   --sq: 76px;
   grid-template-columns: none;
@@ -275,6 +277,11 @@ button { font: inherit; color: inherit; }
   width: var(--sq); height: var(--sq); min-height: 0;
   padding: 0;
   border-radius: 18px;
+  /* Centred on a whole pixel: in an odd-width column (343 px on a 375 px phone) plain centring puts every square and its star
+     half a pixel off, which phones round differently while a card animates, so the star hopped as each animation began and ended.
+     The first line is the fallback for browsers without round(). */
+  margin-left: calc((100% - var(--sq)) / 2);
+  margin-left: round(down, (100% - var(--sq)) / 2, 1px);
   position: relative;
   left: calc(var(--path, 0) * var(--sq));
   overflow: hidden;
