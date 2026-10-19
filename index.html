@@ -490,7 +490,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
   <section class="view" id="view-units" hidden aria-labelledby="units-title">
     <div class="nav-row"><button class="link-btn" id="units-back" type="button">&lsaquo; Sections</button></div>
     <div class="view-head">
-      <h2 class="view-title" id="units-title" tabindex="-1">Section 1</h2>
+      <h2 class="view-title" id="units-title" tabindex="-1">Basic, Section 1</h2>
       <span class="bar" role="img" id="units-meter"><span id="units-bar"></span></span>
     </div>
     <div class="rows-wrap" id="units-wrap"><div class="rows" id="units-list"></div></div>
@@ -1336,7 +1336,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
 
   function renderUnits(course, sec) {
     var perfect = perfectCount(sec.units);
-    $('units-title').textContent = 'Section ' + sec.n;
+    $('units-title').textContent = course.name + ', Section ' + sec.n;
     $('units-meter').setAttribute('aria-label', perfect + ' of ' + sec.units.length + ' units completed');
     $('units-bar').style.width = (sec.units.length ? perfect / sec.units.length * 100 : 0) + '%';
     closeBubble();
