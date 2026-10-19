@@ -6,33 +6,31 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Semi+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: one 720px column like a rig's front panel: name plate and courses, section and unit lists, then the flashcard, with the main action pinned to the bottom of the screen. */
+/* Dark theme only, whatever the device or browser is set to (the owner's choice, 2026-10-18). */
 :root {
-  --bg: #e9edf1;
-  --surface: #ffffff;
-  --ink: #15212c;
-  --muted: #566573;
-  --line: #cfd7df;
+  color-scheme: dark;
+  --bg: #0d151d;
+  --surface: #152029;
+  --ink: #e5ecf2;
+  --muted: #94a4b3;
+  --line: #273644;
   /* Course colours: neon cyan for Basic, electric orange for Advanced.
-     The neon fills buttons and selections, with --on-neon text on top.
-     -line is for bars, focus rings and coloured text: deep enough in light mode for 4.5:1 on cards and 3:1 on the bar track.
-     -pop is the focus ring inside pop-ups, which are dark in light mode and pale in dark mode. */
-  --cyan: #00d4f2;
-  --cyan-line: #008194;
-  --cyan-pop: #00d4f2;
-  --orange: #ff6a13;
-  --orange-line: #c4520f;
-  --orange-pop: #ff6a13;
+     The neon fills buttons and selections, with --on-neon text on top; -line is for bars, focus rings and coloured text.
+     -pop is the focus ring inside pop-ups, which are pale, so it takes a deep shade. */
+  --cyan: #00e5ff;
+  --cyan-line: #00e5ff;
+  --cyan-pop: #008194;
+  --orange: #ff7a1f;
+  --orange-line: #ff7a1f;
+  --orange-pop: #c4520f;
   --on-neon: #08131b;
-  --retry: #6a3fe0;
-  --seg-off: #d9e0e7;
-  --good: #17703f;
-  --good-bg: #e2f3e9;
-  --bad: #b3261e;
-  --bad-bg: #fbe8e6;
-  /* Bright fills for the button after Check, with --on-neon text. */
-  --good-fill: #22d16b;
-  --bad-fill: #ff4d6d;
-  --shadow: 0 1px 2px rgba(21, 33, 44, .06), 0 8px 24px rgba(21, 33, 44, .07);
+  --seg-off: #22303d;
+  /* Answers: green for the right one, red for a wrong pick. The button after Check uses the same two colours. */
+  --good: #5acb8c;
+  --good-bg: #123022;
+  --bad: #ff8a7a;
+  --bad-bg: #3b1915;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
 
   --font-display: "Barlow Semi Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
   --font-body: "Atkinson Hyperlegible", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -45,54 +43,6 @@
   --step-3: 2rem;
 
   --dock-space: calc(96px + env(safe-area-inset-bottom, 0px));
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0d151d;
-    --surface: #152029;
-    --ink: #e5ecf2;
-    --muted: #94a4b3;
-    --line: #273644;
-    --cyan: #00e5ff;
-    --cyan-line: #00e5ff;
-    --cyan-pop: #008194;
-    --orange: #ff7a1f;
-    --orange-line: #ff7a1f;
-    --orange-pop: #c4520f;
-    --retry: #b49cff;
-    --seg-off: #22303d;
-    --good: #5acb8c;
-    --good-bg: #123022;
-    --bad: #ff8a7a;
-    --bad-bg: #3b1915;
-    --good-fill: #3ce883;
-    --bad-fill: #ff5c78;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0d151d;
-  --surface: #152029;
-  --ink: #e5ecf2;
-  --muted: #94a4b3;
-  --line: #273644;
-  --cyan: #00e5ff;
-  --cyan-line: #00e5ff;
-  --cyan-pop: #008194;
-  --orange: #ff7a1f;
-  --orange-line: #ff7a1f;
-  --orange-pop: #c4520f;
-  --retry: #b49cff;
-  --seg-off: #22303d;
-  --good: #5acb8c;
-  --good-bg: #123022;
-  --bad: #ff8a7a;
-  --bad-bg: #3b1915;
-  --good-fill: #3ce883;
-  --bad-fill: #ff5c78;
-  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
-  color-scheme: dark;
 }
 
 /* The colour of the course on screen: Basic unless data-course="advanced" (set on <body> for each screen, and on the Advanced card). */
@@ -406,8 +356,7 @@ button { font: inherit; color: inherit; }
 
 .unit-bar { height: 10px; border-radius: 5px; background: var(--seg-off); overflow: hidden; }
 .unit-bar span { display: block; height: 100%; border-radius: 5px; background: var(--course-line); transform: translateX(-100%); transition: transform .25s cubic-bezier(.25, 1, .5, 1); }
-.unit-bar.is-retry span { background: var(--retry); }
-.phase-label { margin: -8px 0 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step--1); text-transform: uppercase; letter-spacing: .1em; color: var(--retry); }
+.phase-label { margin: -8px 0 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step--1); text-transform: uppercase; letter-spacing: .1em; color: var(--course-line); }
 
 .qtext {
   margin: 0;
@@ -505,10 +454,10 @@ legend { padding: 0; margin-bottom: 8px; }
 .dock-inner { max-width: 720px; margin: 0 auto; }
 .dock .btn { display: grid; place-items: center; width: 100%; min-height: 54px; font-size: var(--step-1); line-height: 1.2; }
 .dock-sub { font-size: var(--step--1); font-weight: 400; opacity: .8; }
-/* After Check the button takes the answer's colour at once; a finished course shows a badge rather than a dead button.
+/* After Check the button takes the answer's own green or red at once; a finished course shows a badge rather than a dead button.
    (No colour transition: it restarts on every Check and Next, and piled up when cards were answered faster than frames.) */
-.dock .btn[data-tone="good"] { background: var(--good-fill); border-color: var(--good-fill); }
-.dock .btn[data-tone="bad"] { background: var(--bad-fill); border-color: var(--bad-fill); }
+.dock .btn[data-tone="good"] { background: var(--good); border-color: var(--good); }
+.dock .btn[data-tone="bad"] { background: var(--bad); border-color: var(--bad); }
 .dock .btn[data-tone="done"]:disabled { background: var(--course); border-color: var(--course); color: var(--on-neon); }
 
 .foot { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px; }
@@ -599,7 +548,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       <p>Are you sure you want to use a hint?</p>
       <button class="btn" id="hint-yes" type="button">Use hint</button>
     </div>
-    <p class="phase-label" id="play-phase" hidden>Second try</p>
+    <p class="phase-label" id="play-phase" hidden>Retry</p>
     <h2 class="qtext" id="play-text" tabindex="-1"></h2>
     <div class="opts" id="play-opts" role="group" aria-labelledby="play-text"></div>
     <p class="sr-only" id="play-verdict" role="status" aria-live="polite"></p>
@@ -1257,7 +1206,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     if (view === 'sections' || view === 'units') {
       var target = continueTarget(courses[top().c]);
       if (target) setDock('Continue', 'Section ' + target.section.n + DOT + 'Unit ' + target.n, false);
-      else setDock('\u2713 Course completed', null, true, 'done');
+      else setDock('Course completed', null, true, 'done');
     } else if (view === 'play') {
       var a = ust.attempt;
       if (a.choice === null) setDock('Check', null, playSel === null);
@@ -1408,7 +1357,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     } else if (!s) {
       side.appendChild(el('span', '', 'Not started'));
     } else if (s.best === u.ids.length) {
-      side.appendChild(el('span', 'status-perfect', '\u2713 Completed'));
+      side.appendChild(el('span', 'status-perfect', 'Completed'));
     } else {
       var bar = el('span', 'unit-progress');
       bar.setAttribute('role', 'img');
@@ -1600,7 +1549,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       if (!a.missed.length) return finishUnit();
       a.phase = 2;
       a.pos = 0;
-      // Start the second-try bar from empty without animating it backwards.
+      // Start the retry bar from empty without animating it backwards.
       var fill = $('play-bar').firstElementChild;
       fill.style.transition = 'none';
       setFill(fill, 0);
@@ -1671,7 +1620,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     if (right) {
       var key = opt.querySelector('.key');
       key.style.animation = 'key-pop .34s cubic-bezier(.22, 1, .36, 1)';
-      sparks(key, [cssVar('--good-fill'), cssVar('--course')]);
+      sparks(key, [cssVar('--good'), cssVar('--course')]);
     } else {
       opt.style.animation = 'opt-shake .34s cubic-bezier(.36, .07, .19, .97)';
     }
@@ -1689,7 +1638,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     lock.style.setProperty('--delay', delay + 'ms');
     row.classList.add('is-unlocking');
     row.querySelector('.row-side').appendChild(lock);
-    setTimeout(function () { sparks(lock, [cssVar('--course'), cssVar('--good-fill')]); }, delay + 220);
+    setTimeout(function () { sparks(lock, [cssVar('--course'), cssVar('--good')]); }, delay + 220);
     setTimeout(function () { lock.remove(); row.classList.remove('is-unlocking'); }, delay + 900);
   }
 
