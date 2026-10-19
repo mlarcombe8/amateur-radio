@@ -29,6 +29,9 @@
   --good-bg: #e2f3e9;
   --bad: #b3261e;
   --bad-bg: #fbe8e6;
+  /* Bright fills for the button after Check, with --on-neon text. */
+  --good-fill: #22d16b;
+  --bad-fill: #ff4d6d;
   --shadow: 0 1px 2px rgba(21, 33, 44, .06), 0 8px 24px rgba(21, 33, 44, .07);
 
   --font-display: "Barlow Semi Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
@@ -62,6 +65,8 @@
     --good-bg: #123022;
     --bad: #ff8a7a;
     --bad-bg: #3b1915;
+    --good-fill: #3ce883;
+    --bad-fill: #ff5c78;
     --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
     color-scheme: dark;
   }
@@ -84,6 +89,8 @@
   --good-bg: #123022;
   --bad: #ff8a7a;
   --bad-bg: #3b1915;
+  --good-fill: #3ce883;
+  --bad-fill: #ff5c78;
   --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
   color-scheme: dark;
 }
@@ -335,6 +342,30 @@ button { font: inherit; color: inherit; }
 .lock { display: inline-flex; color: var(--muted); }
 .lock svg { display: block; width: 16px; height: 16px; }
 
+/* Celebrations. Sparks fly in a fixed layer above the page, so no list clips them and nothing moves. */
+.fx { position: fixed; inset: 0; z-index: 20; overflow: hidden; pointer-events: none; }
+.spark { position: absolute; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 1.5px; animation: spark .6s cubic-bezier(.16, 1, .3, 1) forwards; }
+@keyframes spark { to { transform: translate(var(--x), var(--y)) rotate(180deg) scale(.4); opacity: 0; } }
+/* On Check: the right answer's letter pops, a wrong pick shakes (started from script on the answered card). */
+@keyframes key-pop { 40% { transform: scale(1.3); } }
+@keyframes opt-shake { 20% { transform: translateX(-6px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
+/* The unit just completed: its row flashes and Completed pops in. */
+.row.is-flash { animation: row-flash 1.1s ease-out; }
+@keyframes row-flash { from { background-color: color-mix(in srgb, var(--course) 28%, var(--surface)); } }
+.status-perfect.is-new { animation: status-pop .45s cubic-bezier(.22, 1, .36, 1); }
+@keyframes status-pop { from { transform: scale(.6); opacity: 0; } 60% { transform: scale(1.12); opacity: 1; } }
+/* A row that has just unlocked: the lock pops open over its usual contents, which then fade in. */
+.row-side { position: relative; }
+.row-side > *, .row .bar { transition: opacity .25s ease-out; }
+.row-title, .row-label, .row-sub { transition: color .3s ease-out; }
+.row.is-unlocking .row-side > :not(.unlock-fx), .row.is-unlocking .bar { opacity: 0; }
+.row.is-unlocking .row-title, .row.is-unlocking .row-label, .row.is-unlocking .row-sub { color: var(--muted); }
+.unlock-fx { position: absolute; right: 0; top: 50%; margin-top: -8px; color: var(--course-line); animation: unlock .9s var(--delay, 0s) cubic-bezier(.22, 1, .36, 1) both; }
+.section-row .unlock-fx { right: 4px; }
+.unlock-fx .lock-shackle { transform-origin: 11.25px 7px; animation: shackle .9s var(--delay, 0s) cubic-bezier(.22, 1, .36, 1) both; }
+@keyframes unlock { 25% { transform: scale(1.35); } 65% { transform: scale(1.2); opacity: 1; } to { transform: scale(.5); opacity: 0; } }
+@keyframes shackle { 0%, 15% { transform: none; } 40%, to { transform: translateY(-2.5px) rotate(-25deg); } }
+
 /* Flashcard */
 .card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 
@@ -474,6 +505,11 @@ legend { padding: 0; margin-bottom: 8px; }
 .dock-inner { max-width: 720px; margin: 0 auto; }
 .dock .btn { display: grid; place-items: center; width: 100%; min-height: 54px; font-size: var(--step-1); line-height: 1.2; }
 .dock-sub { font-size: var(--step--1); font-weight: 400; opacity: .8; }
+/* After Check the button takes the answer's colour at once; a finished course shows a badge rather than a dead button.
+   (No colour transition: it restarts on every Check and Next, and piled up when cards were answered faster than frames.) */
+.dock .btn[data-tone="good"] { background: var(--good-fill); border-color: var(--good-fill); }
+.dock .btn[data-tone="bad"] { background: var(--bad-fill); border-color: var(--bad-fill); }
+.dock .btn[data-tone="done"]:disabled { background: var(--course); border-color: var(--course); color: var(--on-neon); }
 
 .foot { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px; }
 .foot p { margin: 0; }
@@ -493,7 +529,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
 }
 @media (prefers-reduced-motion: reduce) {
   .bar span, .unit-bar span, .opt { transition: none; }
-  .bubble { animation: none; }
+  .bubble, .spark, .row.is-flash, .status-perfect.is-new, .unlock-fx, .unlock-fx .lock-shackle { animation: none; }
 }
 </style>
 
@@ -649,6 +685,8 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
   </div>
 </div>
 
+<div class="fx" id="fx" aria-hidden="true"></div>
+
 <script src="questions.js" charset="utf-8"></script>
 <script>
 (function () {
@@ -671,7 +709,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
   var ORDER_LABEL = { sequential: 'In order', random: 'Random' };
   var DOT = ' \u00b7 ';
   var DASH = '\u2014';
-  var LOCK_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.75 7V5.25a3.25 3.25 0 0 1 6.5 0V7" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="3" y="7" width="10" height="7.5" rx="1.6" fill="currentColor"/></svg>';
+  var LOCK_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><path class="lock-shackle" d="M4.75 7V5.25a3.25 3.25 0 0 1 6.5 0V7" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="3" y="7" width="10" height="7.5" rx="1.6" fill="currentColor"/></svg>';
 
   function $(id) { return document.getElementById(id); }
 
@@ -1192,11 +1230,14 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       row.scrollIntoView({ block: 'center' });
       row.focus({ preventScroll: true });
     }
+    if (view === 'units') unitsFx();
+    if (view === 'sections') sectionsFx();
   }
 
   // ---- Pinned action dock --------------------------------------------------
 
-  function setDock(label, sub, disabled) {
+  // tone colours the button: 'good' or 'bad' after Check, 'done' for a finished course.
+  function setDock(label, sub, disabled, tone) {
     var dock = $('dock');
     if (label === null) {
       dock.hidden = true;
@@ -1209,21 +1250,22 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     $('dock-sub').textContent = sub || '';
     $('dock-sub').hidden = !sub;
     $('dock-btn').disabled = !!disabled;
+    $('dock-btn').dataset.tone = tone || '';
   }
 
   function renderDock() {
     if (view === 'sections' || view === 'units') {
       var target = continueTarget(courses[top().c]);
       if (target) setDock('Continue', 'Section ' + target.section.n + DOT + 'Unit ' + target.n, false);
-      else setDock('Course completed', null, true);
+      else setDock('\u2713 Course completed', null, true, 'done');
     } else if (view === 'play') {
       var a = ust.attempt;
       if (a.choice === null) setDock('Check', null, playSel === null);
-      else setDock(playIsLastCard() ? 'Finish unit' : 'Next', null, false);
+      else setDock(playIsLastCard() ? 'Finish unit' : 'Next', null, false, a.choice === playQuestion().answer ? 'good' : 'bad');
     } else if (view === 'card') {
       var r = state.run;
       if (r.choice === null) setDock('Check', null, runSel === null);
-      else setDock(r.pos + 1 >= r.ids.length ? 'Finish run' : 'Next question', null, false);
+      else setDock(r.pos + 1 >= r.ids.length ? 'Finish run' : 'Next question', null, false, r.choice === currentQuestion().answer ? 'good' : 'bad');
     } else {
       setDock(null);
     }
@@ -1543,6 +1585,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     renderPlay();
     $('dock-btn').focus({ preventScroll: true });
     $('play-opts').querySelector('.is-correct').scrollIntoView({ block: 'nearest' });
+    answerFx($('play-opts'), a.choice === q.answer);
   }
 
   function nextPlay() {
@@ -1576,11 +1619,115 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     var u = playUnit();
     var prev = scoreOf(u);
     var score = a.firstCorrect;
+    var wasPerfect = isPerfect(u);
+    var barFrom = perfectCount(u.section.units) / u.section.units.length;
+    var lockedBefore = u.course.flat.filter(function (x) { return !isUnlocked(x); });
     if (!prev || score > prev.best) ust.scores[u.key] = { best: score, size: u.ids.length, fp: u.fp };
     ust.attempt = null;
     saveUnits();
+    celebrate = {
+      unit: !wasPerfect && isPerfect(u) ? u.key : null,
+      barFrom: barFrom,
+      unlocked: lockedBefore.filter(isUnlocked).map(function (x) { return x.key; })
+    };
     scrollToUnit = u.key;
     backToUnits(u);
+  }
+
+  // ---- Feedback moments ------------------------------------------------------
+  // All decorative: with Reduce Motion on, the screens simply show their new state.
+
+  function reduceMotion() { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+  function cssVar(name) { return getComputedStyle(document.body).getPropertyValue(name).trim(); }
+
+  // A short burst of sparks from the middle of an element, drawn in the .fx layer.
+  function sparks(target, colors) {
+    if (reduceMotion()) return;
+    var box = target.getBoundingClientRect();
+    // Skip a burst if earlier ones are still around (fast keyboard answering, or a throttled background tab).
+    if (!box.width || $('fx').childElementCount > 40) return;
+    var made = [];
+    for (var i = 0; i < 10; i++) {
+      var angle = (i / 10 + Math.random() * 0.06) * 2 * Math.PI;
+      var dist = 22 + Math.random() * 16;
+      var s = el('span', 'spark');
+      s.style.left = (box.left + box.width / 2) + 'px';
+      s.style.top = (box.top + box.height / 2) + 'px';
+      s.style.background = colors[i % colors.length];
+      s.style.setProperty('--x', Math.round(Math.cos(angle) * dist) + 'px');
+      s.style.setProperty('--y', Math.round(Math.sin(angle) * dist) + 'px');
+      $('fx').appendChild(s);
+      made.push(s);
+    }
+    setTimeout(function () { made.forEach(function (s) { s.remove(); }); }, 700);
+  }
+
+  // Check's reaction: the right answer's letter pops with sparks; a wrong pick shakes once.
+  // Inline animations leave the options' classes and size untouched, and go away with the card.
+  function answerFx(container, right) {
+    if (reduceMotion()) return;
+    var opt = container.querySelector(right ? '.is-correct' : '.is-wrong');
+    if (!opt) return;
+    if (right) {
+      var key = opt.querySelector('.key');
+      key.style.animation = 'key-pop .34s cubic-bezier(.22, 1, .36, 1)';
+      sparks(key, [cssVar('--good-fill'), cssVar('--course')]);
+    } else {
+      opt.style.animation = 'opt-shake .34s cubic-bezier(.36, .07, .19, .97)';
+    }
+  }
+
+  // Set when a unit ends: the unit newly completed, the section bar's old fill, and units it unlocked.
+  // The unit list it returns to plays them; an unlocked section waits for the Sections screen.
+  var celebrate = null;
+
+  // A row that has just unlocked: its lock pops open with sparks, then gives way to its usual contents.
+  function unlockFx(row, delay) {
+    if (!row || reduceMotion()) return;
+    var lock = el('span', 'lock unlock-fx');
+    lock.innerHTML = LOCK_SVG;
+    lock.style.setProperty('--delay', delay + 'ms');
+    row.classList.add('is-unlocking');
+    row.querySelector('.row-side').appendChild(lock);
+    setTimeout(function () { sparks(lock, [cssVar('--course'), cssVar('--good-fill')]); }, delay + 220);
+    setTimeout(function () { lock.remove(); row.classList.remove('is-unlocking'); }, delay + 900);
+  }
+
+  function unitsFx() {
+    if (!celebrate) return;
+    var row = celebrate.unit && document.querySelector('#units-list .row[data-unit="' + celebrate.unit + '"]');
+    if (row) {
+      celebrate.unit = null;
+      if (!reduceMotion()) {
+        row.classList.add('is-flash');
+        var status = row.querySelector('.status-perfect');
+        if (status) status.classList.add('is-new');
+        // Fill the section bar from where it stood before this unit.
+        var fill = $('units-bar'), to = fill.style.transform;
+        fill.style.transition = 'none';
+        setFill(fill, celebrate.barFrom);
+        void fill.offsetWidth;
+        fill.style.transition = '';
+        fill.style.transform = to;
+      }
+    }
+    celebrate.unlocked = celebrate.unlocked.filter(function (key) {
+      var r = document.querySelector('#units-list .row[data-unit="' + key + '"]');
+      unlockFx(r, 450);
+      return !r;
+    });
+  }
+
+  function sectionsFx() {
+    if (!celebrate) return;
+    var course = courses[top().c];
+    var rows = document.querySelectorAll('#sections-list .row');
+    celebrate.unlocked = celebrate.unlocked.filter(function (key) {
+      var u = unitByKey[key];
+      if (u.course !== course || u.section.units[0] !== u) return true;
+      unlockFx(rows[u.section.n - 1], 200);
+      return false;
+    });
   }
 
   // ---- Hints: each one removes a wrong answer, so the third leaves only the right one.
@@ -1764,6 +1911,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     renderCard();
     $('dock-btn').focus({ preventScroll: true });
     $('q-opts').querySelector('.is-correct').scrollIntoView({ block: 'nearest' });
+    answerFx($('q-opts'), r.choice === currentQuestion().answer);
   }
 
   function nextRun() {
