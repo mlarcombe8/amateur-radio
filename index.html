@@ -202,8 +202,6 @@ button { font: inherit; color: inherit; }
 /* Section and unit lists */
 .view-head { display: grid; gap: 6px; }
 .view-title { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step-3); line-height: 1.05; }
-/* One line each, so the Sections and Units headers stay the same height. */
-.view-name { margin: 0; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .view-title:focus, h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 .view-head .bar { height: 6px; border-radius: 3px; margin-top: 4px; }
 
@@ -242,6 +240,8 @@ button { font: inherit; color: inherit; }
   display: flex; align-items: center; gap: 10px;
   color: var(--muted); font-size: var(--step--1); font-weight: 700; font-variant-numeric: tabular-nums;
 }
+.section-row { grid-template-columns: minmax(0, 1fr) 24px; }
+.section-row .row-side { justify-content: center; }
 .row.is-locked .row-label, .row.is-locked .row-title, .row.is-locked .row-sub { color: var(--muted); opacity: .7; }
 .row[aria-expanded="true"] { background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
 .unit-progress { display: block; width: 72px; height: 8px; border-radius: 4px; background: var(--seg-off); overflow: hidden; }
@@ -482,7 +482,6 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     <div class="nav-row"><button class="link-btn" id="sections-back" type="button">&lsaquo; Courses</button></div>
     <div class="view-head">
       <h2 class="view-title" id="sections-title" tabindex="-1">Basic</h2>
-      <p class="view-name" id="sections-name" hidden></p>
       <span class="bar" role="img" id="sections-meter"><span id="sections-bar"></span></span>
     </div>
     <div class="rows" id="sections-list"></div>
@@ -492,7 +491,6 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     <div class="nav-row"><button class="link-btn" id="units-back" type="button">&lsaquo; Sections</button></div>
     <div class="view-head">
       <h2 class="view-title" id="units-title" tabindex="-1">Section 1</h2>
-      <p class="view-name" id="units-name" hidden></p>
       <span class="bar" role="img" id="units-meter"><span id="units-bar"></span></span>
     </div>
     <div class="rows-wrap" id="units-wrap"><div class="rows" id="units-list"></div></div>
@@ -1250,7 +1248,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       var card = $('course-' + c);
       var total = course.flat.length;
       var done = perfectCount(course.flat);
-      card.querySelector('.course-sub').textContent = course.name + ' Qualification' + DOT + course.sections.length + ' sections' + DOT + total + ' units';
+      card.querySelector('.course-sub').textContent = course.sections.length + ' sections' + DOT + total + ' units';
       card.querySelector('.bar span').style.width = (total ? done / total * 100 : 0) + '%';
       card.querySelector('.bar').setAttribute('aria-label', done + ' of ' + total + ' units completed');
     });
@@ -1266,8 +1264,6 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     var total = course.flat.length;
     var done = perfectCount(course.flat);
     $('sections-title').textContent = course.name;
-    $('sections-name').textContent = SHOW_NAMES ? course.name + ' Qualification' : '';
-    $('sections-name').hidden = !SHOW_NAMES;
     $('sections-meter').setAttribute('aria-label', done + ' of ' + total + ' units completed');
     $('sections-bar').style.width = (total ? done / total * 100 : 0) + '%';
     var list = $('sections-list');
@@ -1275,7 +1271,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     course.sections.forEach(function (sec, i) {
       var perfect = perfectCount(sec.units);
       var locked = !isUnlocked(sec.units[0]);
-      var row = el('button', 'row' + (locked ? ' is-locked' : ''));
+      var row = el('button', 'row section-row' + (locked ? ' is-locked' : ''));
       row.type = 'button';
       if (nameOf(sec.key)) {
         row.appendChild(el('span', 'row-label', 'Section ' + sec.n));
@@ -1290,11 +1286,10 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
         lock.innerHTML = LOCK_SVG;
         lock.appendChild(el('span', 'sr-only', 'Locked'));
         side.appendChild(lock);
-      } else if (perfect === sec.units.length) {
-        side.appendChild(el('span', 'status-perfect', '\u2713 Completed'));
+      } else {
+        side.appendChild(el('span', 'chev', '\u203a'));
+        side.lastChild.setAttribute('aria-hidden', 'true');
       }
-      side.appendChild(el('span', 'chev', '\u203a'));
-      side.lastChild.setAttribute('aria-hidden', 'true');
       row.appendChild(side);
       row.addEventListener('click', function () { push({ v: 'units', c: course.key, s: i }); });
       list.appendChild(row);
@@ -1342,8 +1337,6 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
   function renderUnits(course, sec) {
     var perfect = perfectCount(sec.units);
     $('units-title').textContent = 'Section ' + sec.n;
-    $('units-name').textContent = nameOf(sec.key);
-    $('units-name').hidden = !nameOf(sec.key);
     $('units-meter').setAttribute('aria-label', perfect + ' of ' + sec.units.length + ' units completed');
     $('units-bar').style.width = (sec.units.length ? perfect / sec.units.length * 100 : 0) + '%';
     closeBubble();
