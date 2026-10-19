@@ -185,7 +185,6 @@ button { font: inherit; color: inherit; }
 .view-head { display: grid; gap: 6px; }
 .view-title { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step-3); line-height: 1.05; }
 .view-title:focus, h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
-.view-head .bar { height: 6px; border-radius: 3px; margin-top: 4px; }
 /* Back arrow on the left of a list heading, sized to the heading's capitals */
 .title-row { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .back-btn {
@@ -518,7 +517,6 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
         <button class="back-btn" id="sections-back" type="button" aria-label="Back to courses" title="Back to courses"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <h2 class="view-title" id="sections-title" tabindex="-1">Basic</h2>
       </div>
-      <span class="bar" role="img" id="sections-meter"><span id="sections-bar"></span></span>
     </div>
     <div class="rows" id="sections-list"></div>
   </section>
@@ -529,7 +527,6 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
         <button class="back-btn" id="units-back" type="button" aria-label="Back to sections" title="Back to sections"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <h2 class="view-title" id="units-title" tabindex="-1">Basic, Section 1</h2>
       </div>
-      <span class="bar" role="img" id="units-meter"><span id="units-bar"></span></span>
     </div>
     <div class="rows-wrap" id="units-wrap"><div class="rows" id="units-list"></div></div>
   </section>
@@ -1299,11 +1296,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
   // ---- Sections ------------------------------------------------------------
 
   function renderSections(course) {
-    var total = course.flat.length;
-    var done = perfectCount(course.flat);
     $('sections-title').textContent = course.name;
-    $('sections-meter').setAttribute('aria-label', done + ' of ' + total + ' units completed');
-    setFill($('sections-bar'), total ? done / total : 0);
     var list = $('sections-list');
     list.textContent = '';
     course.sections.forEach(function (sec, i) {
@@ -1374,10 +1367,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
   }
 
   function renderUnits(course, sec) {
-    var perfect = perfectCount(sec.units);
     $('units-title').textContent = course.name + ', Section ' + sec.n;
-    $('units-meter').setAttribute('aria-label', perfect + ' of ' + sec.units.length + ' units completed');
-    setFill($('units-bar'), sec.units.length ? perfect / sec.units.length : 0);
     closeBubble();
     var list = $('units-list');
     list.textContent = '';
@@ -1569,14 +1559,12 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     var prev = scoreOf(u);
     var score = a.firstCorrect;
     var wasPerfect = isPerfect(u);
-    var barFrom = perfectCount(u.section.units) / u.section.units.length;
     var lockedBefore = u.course.flat.filter(function (x) { return !isUnlocked(x); });
     if (!prev || score > prev.best) ust.scores[u.key] = { best: score, size: u.ids.length, fp: u.fp };
     ust.attempt = null;
     saveUnits();
     celebrate = {
       unit: !wasPerfect && isPerfect(u) ? u.key : null,
-      barFrom: barFrom,
       unlocked: lockedBefore.filter(isUnlocked).map(function (x) { return x.key; })
     };
     scrollToUnit = u.key;
@@ -1626,7 +1614,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     }
   }
 
-  // Set when a unit ends: the unit newly completed, the section bar's old fill, and units it unlocked.
+  // Set when a unit ends: the unit newly completed, and units it unlocked.
   // The unit list it returns to plays them; an unlocked section waits for the Sections screen.
   var celebrate = null;
 
@@ -1651,13 +1639,6 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
         row.classList.add('is-flash');
         var status = row.querySelector('.status-perfect');
         if (status) status.classList.add('is-new');
-        // Fill the section bar from where it stood before this unit.
-        var fill = $('units-bar'), to = fill.style.transform;
-        fill.style.transition = 'none';
-        setFill(fill, celebrate.barFrom);
-        void fill.offsetWidth;
-        fill.style.transition = '';
-        fill.style.transform = to;
       }
     }
     celebrate.unlocked = celebrate.unlocked.filter(function (key) {
