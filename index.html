@@ -346,13 +346,50 @@ button { font: inherit; color: inherit; }
 .row-side { position: relative; }
 .row-side > *, .row .bar { transition: opacity .25s ease-out; }
 .row-title, .row-label, .row-sub { transition: color .3s ease-out; }
-.row.is-unlocking { background: var(--surface); --lip-color: var(--card-edge); text-shadow: none; }
+.row.is-unlocking { background: var(--surface); --lip-color: var(--card-edge); text-shadow: none; transition: none; }
 .row.is-unlocking .row-side > :not(.unlock-fx), .row.is-unlocking .bar { opacity: 0; }
 .row.is-unlocking .row-title, .row.is-unlocking .row-label, .row.is-unlocking .row-sub { color: var(--muted); }
 .unlock-fx { position: absolute; right: 0; top: 50%; margin-top: -8px; color: var(--course-line); animation: unlock .9s var(--delay, 0s) cubic-bezier(.22, 1, .36, 1) both; }
 .unlock-fx .lock-shackle { transform-origin: 11.25px 7px; animation: shackle .9s var(--delay, 0s) cubic-bezier(.22, 1, .36, 1) both; }
 @keyframes unlock { 25% { transform: scale(1.35); } 65% { transform: scale(1.2); opacity: 1; } to { transform: scale(.5); opacity: 0; } }
 @keyframes shackle { 0%, 15% { transform: none; } 40%, to { transform: translateY(-2.5px) rotate(-25deg); } }
+/* ...then the card is pressed like a tapped button and held to charge up, springs high into the air and turns a full circle
+   towards you. Its back is plain grey; it changes to the course colour at the second edge-on moment, so the rest of the turn
+   shows the unlocked card. It falls faster and faster, lands with another tap-like press that absorbs the impact, and rises
+   back to normal. Each press is the cards' :active state: down 4px onto a 2px edge, in the pressed colour, with no squash.
+   One 1.25s timeline: launch at 24%, 90 degrees at 36.5%, 270 degrees at 61.5%, landing at 74%. */
+.row.is-flipping {
+  position: relative;
+  z-index: 2;
+  transition: none;
+  animation: card-jump 1.25s forwards, card-turn 1.25s forwards, card-face 1.25s forwards;
+}
+.row.is-flipping > * { animation: card-back 1.25s forwards; }
+/* Height: launched fast and slowing to the top, then falling faster to the landing. */
+@keyframes card-jump {
+  0% { translate: 0 0; animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  8%, 24% { translate: 0 4px; animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  48% { translate: 0 -48px; animation-timing-function: cubic-bezier(.33, 0, .67, .33); }
+  74% { translate: 0 0; animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  79%, 86% { translate: 0 4px; animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  to { translate: 0 0; }
+}
+/* Turn: steady through the air. */
+@keyframes card-turn {
+  0%, 24% { transform: perspective(700px) rotateX(0); animation-timing-function: linear; }
+  74%, to { transform: perspective(700px) rotateX(360deg); }
+}
+/* Colour and edge: grey until the second edge-on moment, then the course colour; each press shrinks the edge and shades the card. */
+@keyframes card-face {
+  0% { background-color: var(--surface); box-shadow: 0 6px 0 var(--card-edge), var(--shadow); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  8%, 24% { background-color: color-mix(in srgb, var(--course) 16%, var(--surface)); box-shadow: 0 2px 0 var(--card-edge), var(--shadow); animation-timing-function: linear; }
+  25%, 61.5% { background-color: var(--surface); box-shadow: 0 6px 0 var(--card-edge), var(--shadow); }
+  61.6%, 74% { background-color: var(--course); box-shadow: 0 6px 0 var(--course-shade), var(--shadow); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  79%, 86% { background-color: color-mix(in srgb, var(--course) 85%, #000); box-shadow: 0 2px 0 var(--course-shade), var(--shadow); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  to { background-color: var(--course); box-shadow: 0 6px 0 var(--course-shade), var(--shadow); }
+}
+/* Contents: hidden while the back faces you, from the first edge-on moment to the second. */
+@keyframes card-back { 0%, 36.5% { visibility: visible; } 36.6%, 61.5% { visibility: hidden; } 61.6%, to { visibility: visible; } }
 
 /* Flashcard */
 .card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -520,7 +557,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
 }
 @media (prefers-reduced-motion: reduce) {
   .bar span, .unit-bar span, .opt { transition: none; }
-  .bubble, .spark, .row.is-flash, .unlock-fx, .unlock-fx .lock-shackle { animation: none; }
+  .bubble, .spark, .row.is-flash, .unlock-fx, .unlock-fx .lock-shackle, .row.is-flipping, .row.is-flipping > * { animation: none; }
   .unit-progress span { transition: none; }
 }
 </style>
@@ -1641,7 +1678,8 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   // The unit list it returns to plays them; an unlocked section waits for the Sections screen.
   var celebrate = null;
 
-  // A row that has just unlocked: its lock pops open with sparks, then gives way to its usual contents.
+  // A row that has just unlocked: its lock pops open with sparks, then the card is pressed like a button, springs up and turns
+  // a full circle (changing from grey to the course colour at the second edge-on moment), and lands with another press.
   function unlockFx(row, delay) {
     if (!row || reduceMotion()) return;
     var lock = el('span', 'lock unlock-fx');
@@ -1650,7 +1688,10 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     row.classList.add('is-unlocking');
     row.querySelector('.row-side').appendChild(lock);
     setTimeout(function () { sparks(lock, [cssVar('--course'), cssVar('--good')]); }, delay + 220);
-    setTimeout(function () { lock.remove(); row.classList.remove('is-unlocking'); }, delay + 900);
+    setTimeout(function () { row.classList.add('is-flipping'); }, delay + 500);
+    // Halfway round, while its plain back faces you, its usual contents replace the grey ones, ready for the second edge.
+    setTimeout(function () { lock.remove(); row.classList.remove('is-unlocking'); }, delay + 1112);
+    setTimeout(function () { row.classList.remove('is-flipping'); }, delay + 1750);
   }
 
   function unitsFx() {
