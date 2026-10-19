@@ -205,6 +205,23 @@ button { font: inherit; color: inherit; }
 .view-title { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step-3); line-height: 1.05; }
 .view-title:focus, h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 .view-head .bar { height: 6px; border-radius: 3px; margin-top: 4px; }
+/* Back arrow on the left of a list heading, sized to the heading's capitals */
+.title-row { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.back-btn {
+  appearance: none;
+  flex: none;
+  display: grid; place-items: center;
+  width: 38px; height: 38px;
+  margin-left: -14px;
+  border: 0; border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+.back-btn:hover { color: var(--accent-ink); }
+.back-btn svg { display: block; width: 30px; height: 30px; }
+/* Narrow phones: a slightly smaller heading keeps "Advanced, Section 7" on one line next to the arrow. */
+@media (max-width: 359px) { .view-title { font-size: 1.75rem; } }
 
 .rows {
   display: grid;
@@ -484,18 +501,22 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
   </section>
 
   <section class="view" id="view-sections" hidden aria-labelledby="sections-title">
-    <div class="nav-row"><button class="link-btn" id="sections-back" type="button">&lsaquo; Courses</button></div>
     <div class="view-head">
-      <h2 class="view-title" id="sections-title" tabindex="-1">Basic</h2>
+      <div class="title-row">
+        <button class="back-btn" id="sections-back" type="button" aria-label="Back to courses" title="Back to courses"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <h2 class="view-title" id="sections-title" tabindex="-1">Basic</h2>
+      </div>
       <span class="bar" role="img" id="sections-meter"><span id="sections-bar"></span></span>
     </div>
     <div class="rows" id="sections-list"></div>
   </section>
 
   <section class="view" id="view-units" hidden aria-labelledby="units-title">
-    <div class="nav-row"><button class="link-btn" id="units-back" type="button">&lsaquo; Sections</button></div>
     <div class="view-head">
-      <h2 class="view-title" id="units-title" tabindex="-1">Basic, Section 1</h2>
+      <div class="title-row">
+        <button class="back-btn" id="units-back" type="button" aria-label="Back to sections" title="Back to sections"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <h2 class="view-title" id="units-title" tabindex="-1">Basic, Section 1</h2>
+      </div>
       <span class="bar" role="img" id="units-meter"><span id="units-bar"></span></span>
     </div>
     <div class="rows-wrap" id="units-wrap"><div class="rows" id="units-list"></div></div>
