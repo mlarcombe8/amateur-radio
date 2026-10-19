@@ -402,22 +402,16 @@ button { font: inherit; color: inherit; }
   font-family: var(--font-mono); font-weight: 500; font-size: var(--step-0);
 }
 .opt .txt { min-width: 0; padding-top: 2px; overflow-wrap: anywhere; }
-.opt .mark { grid-column: 2; font-family: var(--font-display); font-weight: 700; font-size: var(--step--1); text-transform: uppercase; letter-spacing: .08em; }
 .opt.is-selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); box-shadow: inset 0 0 0 1px var(--accent); }
 .opt.is-selected .key { border-color: var(--accent); color: var(--accent-ink); }
 .opt.is-correct { border-color: var(--good); background: var(--good-bg); }
 .opt.is-correct .key { border-color: var(--good); background: var(--good); color: var(--surface); }
-.opt.is-correct .mark { color: var(--good); }
 .opt.is-wrong { border-color: var(--bad); background: var(--bad-bg); }
 .opt.is-wrong .key { border-color: var(--bad); background: var(--bad); color: var(--surface); }
-.opt.is-wrong .mark { color: var(--bad); }
 .opt.is-dim { opacity: .55; }
 .opt.is-removed { opacity: .35; }
 .opt.is-removed .txt { text-decoration: line-through; }
 
-.verdict { margin: 0; min-height: 1.5em; font-weight: 700; font-size: var(--step-1); }
-.verdict.good { color: var(--good); }
-.verdict.bad { color: var(--bad); }
 
 /* Home screen of All questions */
 .resume { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; padding: 14px 16px; border-radius: 10px; background: var(--bg); }
@@ -556,7 +550,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     <p class="phase-label" id="play-phase" hidden>Second try</p>
     <h2 class="qtext" id="play-text" tabindex="-1"></h2>
     <div class="opts" id="play-opts" role="group" aria-labelledby="play-text"></div>
-    <p class="verdict" id="play-verdict" role="status" aria-live="polite"></p>
+    <p class="sr-only" id="play-verdict" role="status" aria-live="polite"></p>
     <p class="kbd-hint">Keys: <kbd>A</kbd>&ndash;<kbd>D</kbd> or <kbd>1</kbd>&ndash;<kbd>4</kbd> to choose, <kbd>Enter</kbd> to check, then <kbd>Enter</kbd> or <kbd>&rarr;</kbd> for the next question.</p>
   </section>
 
@@ -616,7 +610,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     </div>
     <h2 class="qtext" id="q-text" tabindex="-1"></h2>
     <div class="opts" id="q-opts" role="group" aria-labelledby="q-text"></div>
-    <p class="verdict" id="q-verdict" role="status" aria-live="polite"></p>
+    <p class="sr-only" id="q-verdict" role="status" aria-live="polite"></p>
     <p class="kbd-hint">Keys: <kbd>A</kbd>&ndash;<kbd>D</kbd> or <kbd>1</kbd>&ndash;<kbd>4</kbd> to choose, <kbd>Enter</kbd> to check, then <kbd>Enter</kbd> or <kbd>&rarr;</kbd> for the next question.</p>
   </section>
 
@@ -1243,17 +1237,10 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       if (gone) btn.classList.add('is-removed');
       if (checked) {
         btn.disabled = true;
-        var mark = null;
-        if (i === q.answer) {
-          btn.classList.add('is-correct');
-          mark = choice === i ? '\u2713 Correct' : '\u2713 Correct answer';
-        } else if (i === choice) {
-          btn.classList.add('is-wrong');
-          mark = '\u2717 Incorrect';
-        } else {
-          btn.classList.add('is-dim');
-        }
-        if (mark) btn.appendChild(el('span', 'mark', mark));
+        // Only colours change after Check, so the options keep their size.
+        if (i === q.answer) btn.classList.add('is-correct');
+        else if (i === choice) btn.classList.add('is-wrong');
+        else btn.classList.add('is-dim');
       } else if (gone) {
         btn.disabled = true;
       } else {
@@ -1272,15 +1259,9 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     });
   }
 
+  // The result is read out to screen readers only; on screen the options' colours show it.
   function renderVerdict(p, q, choice) {
-    if (choice === null) {
-      p.textContent = '';
-      p.className = 'verdict';
-      return;
-    }
-    var ok = choice === q.answer;
-    p.textContent = ok ? 'Correct.' : 'Incorrect. The answer is ' + LETTERS[q.answer] + '.';
-    p.className = 'verdict ' + (ok ? 'good' : 'bad');
+    p.textContent = choice === null ? '' : choice === q.answer ? 'Correct.' : 'Incorrect. The answer is ' + LETTERS[q.answer] + '.';
   }
 
   function focusQuestion(id) {
@@ -1543,7 +1524,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     saveUnits();
     renderPlay();
     $('dock-btn').focus({ preventScroll: true });
-    $('play-verdict').scrollIntoView({ block: 'nearest' });
+    $('play-opts').querySelector('.is-correct').scrollIntoView({ block: 'nearest' });
   }
 
   function nextPlay() {
@@ -1764,7 +1745,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     save();
     renderCard();
     $('dock-btn').focus({ preventScroll: true });
-    $('q-verdict').scrollIntoView({ block: 'nearest' });
+    $('q-opts').querySelector('.is-correct').scrollIntoView({ block: 'nearest' });
   }
 
   function nextRun() {
