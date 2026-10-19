@@ -418,6 +418,23 @@ button { font: inherit; color: inherit; }
 .play-pop { width: min(300px, calc(100% - 24px)); }
 #leave-pop { left: 12px; }
 #hint-pop { right: 12px; }
+
+/* Settings gear at the right of the home heading: grey, the course colour on hover, like the hint.
+   Its negative margins keep the heading row the title's height, so the course cards don't move. */
+.settings-btn { align-self: center; margin: -2px -8px -2px 0; }
+.settings-btn:hover { color: var(--course-line); }
+.settings-btn svg { width: 24px; height: 24px; }
+
+/* Settings page */
+.setting { position: relative; gap: 8px; }
+.setting h3 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step-1); line-height: 1.2; }
+.setting > p { color: var(--muted); }
+.setting > .btn { justify-self: start; margin-top: 8px; }
+.setting > .setting-status { color: var(--ink); font-weight: 700; }
+.setting > .setting-status:empty { margin-top: -8px; }
+/* Red, with off-white text like the red Next button. */
+.btn.primary.danger { color: var(--off-white); }
+#reset-pop { left: 12px; }
 .tag {
   font-family: var(--font-display); font-weight: 600; font-size: var(--step--1);
   text-transform: uppercase; letter-spacing: .1em;
@@ -571,6 +588,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   <section class="view" id="view-home" hidden aria-labelledby="home-title">
     <header class="plate">
       <h1 id="home-title" tabindex="-1">Go HAM</h1>
+      <button class="icon-btn settings-btn" id="to-settings" type="button" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.07 4.55 10.32 1.94 13.68 1.94 13.93 4.55 15.91 5.37 17.92 3.7 20.3 6.08 18.63 8.09 19.45 10.07 22.06 10.32 22.06 13.68 19.45 13.93 18.63 15.91 20.3 17.92 17.92 20.3 15.91 18.63 13.93 19.45 13.68 22.06 10.32 22.06 10.07 19.45 8.09 18.63 6.08 20.3 3.7 17.92 5.37 15.91 4.55 13.93 1.94 13.68 1.94 10.32 4.55 10.07 5.37 8.09 3.7 6.08 6.08 3.7 8.09 5.37ZM8.7 12a3.3 3.3 0 1 0 6.6 0a3.3 3.3 0 1 0 -6.6 0Z" fill="currentColor" fill-rule="evenodd" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></button>
     </header>
     <div class="courses">
       <button class="course-card" id="course-basic" type="button" data-course="basic">
@@ -610,6 +628,25 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       </div>
     </div>
     <div class="rows-wrap" id="units-wrap"><div class="rows" id="units-list"></div></div>
+  </section>
+
+  <section class="view" id="view-settings" hidden aria-labelledby="settings-title">
+    <div class="view-head">
+      <div class="title-row">
+        <button class="back-btn" id="settings-back" type="button" aria-label="Back to courses" title="Back to courses"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <h2 class="view-title" id="settings-title" tabindex="-1">Settings</h2>
+      </div>
+    </div>
+    <div class="panel setting">
+      <h3>Progress</h3>
+      <p>Clear every completed unit and any unit in progress, in both Basic and Advanced. You'll start again from the first unit of each course.</p>
+      <button class="btn primary danger" id="reset-btn" type="button">Reset all progress</button>
+      <p class="setting-status" id="reset-status" role="status" aria-live="polite"></p>
+      <div class="bubble play-pop" id="reset-pop" hidden>
+        <p>Reset all progress? This can't be undone.</p>
+        <button class="btn" id="reset-yes" type="button">Reset progress</button>
+      </div>
+    </div>
   </section>
 
   <section class="panel" id="view-play" hidden aria-labelledby="play-text">
@@ -1154,7 +1191,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   var nav = [];
   var view = null;
   var historyOK = true;
-  var VIEWS = ['home', 'sections', 'units', 'play', 'runsetup', 'card', 'done'];
+  var VIEWS = ['home', 'sections', 'units', 'play', 'settings', 'runsetup', 'card', 'done'];
 
   function syncHistory(method) {
     if (!historyOK) return;
@@ -1212,6 +1249,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       case 'sections': return courses[st.c] ? st : { v: 'home' };
       case 'units': return courses[st.c] && courses[st.c].sections[st.s] ? st : { v: 'home' };
       case 'play': return ust.attempt ? st : { v: 'home' };
+      case 'settings': return st;
       case 'runsetup': return st;
       case 'card': return runActive() ? st : { v: 'runsetup' };
       case 'done': return state.run && !runActive() ? st : { v: 'runsetup' };
@@ -1231,11 +1269,12 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     VIEWS.forEach(function (name) { $('view-' + name).hidden = name !== view; });
     // Each course has its own colour: cyan for Basic, orange for Advanced.
     document.body.dataset.course = (view === 'play' ? playUnit().course.key : st.c) || 'basic';
-    closePlayPops();
+    closePops();
     if (view === 'home') renderHome();
     if (view === 'sections') renderSections(courses[st.c]);
     if (view === 'units') renderUnits(courses[st.c], courses[st.c].sections[st.s]);
     if (view === 'play') { playSel = null; renderPlay(); }
+    if (view === 'settings') renderSettings();
     if (view === 'runsetup') renderRunSetup();
     if (view === 'card') { runSel = null; renderCard(); }
     if (view === 'done') renderDone();
@@ -1355,6 +1394,32 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   $('course-basic').addEventListener('click', function () { push({ v: 'sections', c: 'basic' }); });
   $('course-advanced').addEventListener('click', function () { push({ v: 'sections', c: 'advanced' }); });
   $('to-runsetup').addEventListener('click', function () { push({ v: 'runsetup' }); });
+  $('to-settings').addEventListener('click', function () { push({ v: 'settings' }); });
+
+  // ---- Settings ------------------------------------------------------------
+
+  function renderSettings() {
+    $('reset-status').textContent = '';
+  }
+
+  $('settings-back').addEventListener('click', function () { backTo({ v: 'home' }); });
+
+  $('reset-btn').addEventListener('click', function (e) {
+    e.stopPropagation();
+    togglePop('reset-pop', this);
+  });
+  // Clears every unit's score and the unit in progress in both courses, so each course is back to its first unit.
+  // The hidden All questions mode loses its run in progress too; its set and order choices stay.
+  $('reset-yes').addEventListener('click', function () {
+    closePops();
+    ust = { scores: {}, attempt: null };
+    saveUnits();
+    celebrate = null;
+    state.run = null;
+    save();
+    $('reset-status').textContent = 'All progress has been reset.';
+    $('reset-btn').focus({ preventScroll: true });
+  });
 
   // ---- Sections ------------------------------------------------------------
 
@@ -1749,18 +1814,19 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     renderPlay();
   }
 
-  // ---- Pop-ups under the X and Hint buttons -------------------------------------
+  // ---- Pop-ups under the X and Hint buttons, and under Reset all progress --------
 
-  function closePlayPops() {
+  function closePops() {
     $('leave-pop').hidden = true;
     $('hint-pop').hidden = true;
+    $('reset-pop').hidden = true;
   }
 
   // Floats just under the button that opened it, pointing at that button.
-  function togglePlayPop(id, btn) {
+  function togglePop(id, btn) {
     var pop = $(id);
     var wasOpen = !pop.hidden;
-    closePlayPops();
+    closePops();
     if (wasOpen) return;
     pop.hidden = false;
     pop.style.top = (btn.offsetTop + btn.offsetHeight + 10) + 'px';
@@ -1768,10 +1834,10 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     pop.querySelector('button').focus({ preventScroll: true });
   }
 
-  ['leave-pop', 'hint-pop'].forEach(function (id) {
+  ['leave-pop', 'hint-pop', 'reset-pop'].forEach(function (id) {
     $(id).addEventListener('click', function (e) { e.stopPropagation(); });
   });
-  document.addEventListener('click', function () { if (view === 'play') closePlayPops(); });
+  document.addEventListener('click', function () { if (view === 'play' || view === 'settings') closePops(); });
 
   $('play-hint').addEventListener('click', function (e) {
     e.stopPropagation();
@@ -1779,21 +1845,21 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     if (!a || a.choice !== null) return;
     // Only the first hint on a first-try card costs the question, so only that one asks.
     if (a.phase === 1 && !a.removed.length) {
-      togglePlayPop('hint-pop', this);
+      togglePop('hint-pop', this);
     } else {
-      closePlayPops();
+      closePops();
       useHint();
     }
   });
   $('hint-yes').addEventListener('click', function () {
-    closePlayPops();
+    closePops();
     useHint();
     $($('play-hint').disabled ? 'dock-btn' : 'play-hint').focus({ preventScroll: true });
   });
 
   $('play-leave').addEventListener('click', function (e) {
     e.stopPropagation();
-    togglePlayPop('leave-pop', this);
+    togglePop('leave-pop', this);
   });
   $('leave-yes').addEventListener('click', function () {
     if (!ust.attempt) return;
@@ -1950,7 +2016,14 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       return;
     }
     if (e.key === 'Escape' && view === 'play') {
-      closePlayPops();
+      closePops();
+      return;
+    }
+    if (e.key === 'Escape' && view === 'settings') {
+      if (!$('reset-pop').hidden) {
+        closePops();
+        $('reset-btn').focus();
+      }
       return;
     }
     if ((view !== 'play' && view !== 'card') || e.metaKey || e.ctrlKey || e.altKey) return;
