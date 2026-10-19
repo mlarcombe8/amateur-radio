@@ -3,7 +3,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Semi+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: one 720px column like a rig's front panel: name plate and courses, section and unit lists, then the flashcard, with the main action pinned to the bottom of the screen. */
 :root {
@@ -14,6 +14,10 @@
   --line: #cfd7df;
   --accent: #d0820f;
   --accent-ink: #8a5200;
+  /* Accent deep enough for 3:1 against the bar track, the page and cards (WCAG 1.4.11): bar fills and focus rings. */
+  --accent-strong: #ab6b0c;
+  /* Focus ring inside pop-ups, which are dark in light mode and pale in dark mode. */
+  --focus-pop: #ab6b0c;
   --retry: #2f6db5;
   --seg-off: #d9e0e7;
   --good: #17703f;
@@ -43,6 +47,8 @@
     --line: #273644;
     --accent: #f2a43a;
     --accent-ink: #f6bb66;
+    --accent-strong: #f2a43a;
+    --focus-pop: #8a5200;
     --retry: #7fb2ee;
     --seg-off: #22303d;
     --good: #5acb8c;
@@ -61,6 +67,8 @@
   --line: #273644;
   --accent: #f2a43a;
   --accent-ink: #f6bb66;
+  --accent-strong: #f2a43a;
+  --focus-pop: #8a5200;
   --retry: #7fb2ee;
   --seg-off: #22303d;
   --good: #5acb8c;
@@ -97,7 +105,7 @@ body.has-dock .wrap { padding-bottom: var(--dock-space); }
 .view { display: grid; gap: 20px; min-width: 0; }
 
 button { font: inherit; color: inherit; }
-:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+:focus-visible { outline: 3px solid var(--accent-strong); outline-offset: 2px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 /* Name plate */
@@ -169,11 +177,12 @@ button { font: inherit; color: inherit; }
   gap: 20px;
   min-width: 0;
 }
-.panel h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step-2); line-height: 1.15; text-wrap: balance; }
-.panel p { margin: 0; }
+/* :where() keeps these defaults at plain element weight, so a classed element such as .qtext or .phase-label overrides them. */
+:where(.panel) h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step-2); line-height: 1.15; text-wrap: balance; }
+:where(.panel) p { margin: 0; }
 
 .bar { display: block; height: 4px; border-radius: 2px; background: var(--seg-off); overflow: hidden; }
-.bar span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s ease; }
+.bar span { display: block; height: 100%; background: var(--accent-strong); transform: translateX(-100%); transition: transform .25s cubic-bezier(.25, 1, .5, 1); }
 
 /* Courses (home) */
 .courses { display: grid; gap: 12px; }
@@ -220,6 +229,10 @@ button { font: inherit; color: inherit; }
 }
 .back-btn:hover { color: var(--accent-ink); }
 .back-btn svg { display: block; width: 30px; height: 30px; }
+/* Touch area of 44px around the 38px arrow and the 36px play-screen icons, without moving anything. */
+.back-btn, .icon-btn { position: relative; }
+.back-btn::after, .icon-btn::after { content: ""; position: absolute; inset: -3px; }
+.icon-btn::after { inset: -4px; }
 /* Narrow phones: a slightly smaller heading keeps "Advanced, Section 7" on one line next to the arrow. */
 @media (max-width: 359px) { .view-title { font-size: 1.75rem; } }
 
@@ -248,6 +261,8 @@ button { font: inherit; color: inherit; }
   cursor: pointer;
 }
 .row:first-child { border-top: 0; }
+/* The list clips anything outside a row, so the focus ring is drawn inside it. */
+.row:focus-visible { outline-offset: -3px; }
 .row:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
 .row-label { grid-column: 1; font-family: var(--font-display); font-weight: 600; font-size: var(--step--1); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
 .row-title { grid-column: 1; font-weight: 700; font-size: var(--step-1); }
@@ -262,10 +277,10 @@ button { font: inherit; color: inherit; }
 .section-row .row-side { grid-row: 1; justify-content: center; }
 .section-row.has-label .row-side { grid-row: 1 / span 2; }
 .section-row .bar { grid-column: 1 / -1; }
-.row.is-locked .row-label, .row.is-locked .row-title, .row.is-locked .row-sub { color: var(--muted); opacity: .7; }
+.row.is-locked .row-label, .row.is-locked .row-title, .row.is-locked .row-sub { color: var(--muted); opacity: .9; }
 .row[aria-expanded="true"] { background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
 .unit-progress { display: block; width: 72px; height: 8px; border-radius: 4px; background: var(--seg-off); overflow: hidden; }
-.unit-progress span { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
+.unit-progress span { display: block; height: 100%; border-radius: 4px; background: var(--accent-strong); }
 
 /* Pop-ups: floating over the unit list, or under the X and Hint buttons while playing */
 .rows-wrap { position: relative; }
@@ -292,6 +307,7 @@ button { font: inherit; color: inherit; }
   transform: rotate(45deg);
 }
 .bubble.is-above::before { top: auto; bottom: -6px; }
+.bubble :focus-visible { outline-color: var(--focus-pop); }
 .bubble p { position: relative; margin: 0; font-weight: 700; }
 .bubble .btn { position: relative; width: 100%; min-height: 48px; font-size: var(--step-1); background: var(--bg); color: var(--ink); border-color: var(--bg); }
 .bubble.is-locked { background: var(--seg-off); color: var(--ink); }
@@ -342,7 +358,7 @@ button { font: inherit; color: inherit; }
 .progress-text strong { color: var(--ink); }
 
 .unit-bar { height: 10px; border-radius: 5px; background: var(--seg-off); overflow: hidden; }
-.unit-bar span { display: block; height: 100%; width: 0; border-radius: 5px; background: var(--accent); transition: width .25s ease; }
+.unit-bar span { display: block; height: 100%; border-radius: 5px; background: var(--accent-strong); transform: translateX(-100%); transition: transform .25s cubic-bezier(.25, 1, .5, 1); }
 .unit-bar.is-retry span { background: var(--retry); }
 .phase-label { margin: -8px 0 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step--1); text-transform: uppercase; letter-spacing: .1em; color: var(--retry); }
 
@@ -353,6 +369,7 @@ button { font: inherit; color: inherit; }
   font-size: var(--step-2);
   line-height: 1.35;
   max-width: 62ch;
+  text-wrap: pretty;
 }
 .qtext:focus { outline: none; }
 
@@ -423,7 +440,7 @@ legend { padding: 0; margin-bottom: 8px; }
 .choice span small { color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
 .choice:hover span { border-color: var(--muted); }
 .choice input:checked + span { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); box-shadow: inset 0 0 0 1px var(--accent); }
-.choice input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
+.choice input:focus-visible + span { outline: 3px solid var(--accent-strong); outline-offset: 2px; }
 .home-actions { display: grid; gap: 12px; justify-items: start; }
 
 /* Run results (All questions) */
@@ -826,6 +843,11 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     return e;
   }
 
+  // A bar's fill is a full-width strip slid in from the left, so filling it animates without relayout.
+  function setFill(span, fraction) {
+    span.style.transform = 'translateX(' + (fraction * 100 - 100) + '%)';
+  }
+
   function barEl(fraction, label) {
     var bar = el('span', 'bar');
     if (label) {
@@ -833,7 +855,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       bar.setAttribute('aria-label', label);
     }
     var fill = el('span');
-    fill.style.width = (fraction * 100) + '%';
+    setFill(fill, fraction);
     bar.appendChild(fill);
     return bar;
   }
@@ -1275,7 +1297,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       var total = course.flat.length;
       var done = perfectCount(course.flat);
       card.querySelector('.course-sub').textContent = course.sections.length + ' sections' + DOT + total + ' units';
-      card.querySelector('.bar span').style.width = (total ? done / total * 100 : 0) + '%';
+      setFill(card.querySelector('.bar span'), total ? done / total : 0);
       card.querySelector('.bar').setAttribute('aria-label', done + ' of ' + total + ' units completed');
     });
   }
@@ -1291,7 +1313,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     var done = perfectCount(course.flat);
     $('sections-title').textContent = course.name;
     $('sections-meter').setAttribute('aria-label', done + ' of ' + total + ' units completed');
-    $('sections-bar').style.width = (total ? done / total * 100 : 0) + '%';
+    setFill($('sections-bar'), total ? done / total : 0);
     var list = $('sections-list');
     list.textContent = '';
     course.sections.forEach(function (sec, i) {
@@ -1365,7 +1387,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     var perfect = perfectCount(sec.units);
     $('units-title').textContent = course.name + ', Section ' + sec.n;
     $('units-meter').setAttribute('aria-label', perfect + ' of ' + sec.units.length + ' units completed');
-    $('units-bar').style.width = (sec.units.length ? perfect / sec.units.length * 100 : 0) + '%';
+    setFill($('units-bar'), sec.units.length ? perfect / sec.units.length : 0);
     closeBubble();
     var list = $('units-list');
     list.textContent = '';
@@ -1491,7 +1513,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     var bar = $('play-bar');
     $('play-phase').hidden = a.phase !== 2;
     bar.classList.toggle('is-retry', a.phase === 2);
-    bar.firstElementChild.style.width = fill + '%';
+    setFill(bar.firstElementChild, fill / 100);
     bar.setAttribute('aria-valuenow', String(Math.round(fill)));
     $('play-text').textContent = q.q;
     renderOptions($('play-opts'), q, playSel, a.choice, selectPlay, a.removed);
@@ -1539,7 +1561,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       // Start the second-try bar from empty without animating it backwards.
       var fill = $('play-bar').firstElementChild;
       fill.style.transition = 'none';
-      fill.style.width = '0%';
+      setFill(fill, 0);
       void fill.offsetWidth;
       fill.style.transition = '';
     } else if (a.phase === 2 && a.pos >= a.missed.length) {
@@ -1718,7 +1740,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     $('q-bank').textContent = q.bank === 'basic' ? 'Basic' : 'Advanced';
     $('q-pos').textContent = 'Question ' + (r.pos + 1) + ' of ' + total;
     $('q-run').textContent = runDesc(r);
-    $('q-bar').style.width = ((r.pos + (r.choice === null ? 0 : 1)) / total * 100) + '%';
+    setFill($('q-bar'), (r.pos + (r.choice === null ? 0 : 1)) / total);
     $('q-text').textContent = q.q;
     renderOptions($('q-opts'), q, runSel, r.choice, selectRun);
     renderVerdict($('q-verdict'), q, r.choice);
