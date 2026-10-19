@@ -12,13 +12,18 @@
   --ink: #15212c;
   --muted: #566573;
   --line: #cfd7df;
-  --accent: #d0820f;
-  --accent-ink: #8a5200;
-  /* Accent deep enough for 3:1 against the bar track, the page and cards (WCAG 1.4.11): bar fills and focus rings. */
-  --accent-strong: #ab6b0c;
-  /* Focus ring inside pop-ups, which are dark in light mode and pale in dark mode. */
-  --focus-pop: #ab6b0c;
-  --retry: #2f6db5;
+  /* Course colours: neon cyan for Basic, electric orange for Advanced.
+     The neon fills buttons and selections, with --on-neon text on top.
+     -line is for bars, focus rings and coloured text: deep enough in light mode for 4.5:1 on cards and 3:1 on the bar track.
+     -pop is the focus ring inside pop-ups, which are dark in light mode and pale in dark mode. */
+  --cyan: #00d4f2;
+  --cyan-line: #008194;
+  --cyan-pop: #00d4f2;
+  --orange: #ff6a13;
+  --orange-line: #c4520f;
+  --orange-pop: #ff6a13;
+  --on-neon: #08131b;
+  --retry: #6a3fe0;
   --seg-off: #d9e0e7;
   --good: #17703f;
   --good-bg: #e2f3e9;
@@ -45,11 +50,13 @@
     --ink: #e5ecf2;
     --muted: #94a4b3;
     --line: #273644;
-    --accent: #f2a43a;
-    --accent-ink: #f6bb66;
-    --accent-strong: #f2a43a;
-    --focus-pop: #8a5200;
-    --retry: #7fb2ee;
+    --cyan: #00e5ff;
+    --cyan-line: #00e5ff;
+    --cyan-pop: #008194;
+    --orange: #ff7a1f;
+    --orange-line: #ff7a1f;
+    --orange-pop: #c4520f;
+    --retry: #b49cff;
     --seg-off: #22303d;
     --good: #5acb8c;
     --good-bg: #123022;
@@ -65,11 +72,13 @@
   --ink: #e5ecf2;
   --muted: #94a4b3;
   --line: #273644;
-  --accent: #f2a43a;
-  --accent-ink: #f6bb66;
-  --accent-strong: #f2a43a;
-  --focus-pop: #8a5200;
-  --retry: #7fb2ee;
+  --cyan: #00e5ff;
+  --cyan-line: #00e5ff;
+  --cyan-pop: #008194;
+  --orange: #ff7a1f;
+  --orange-line: #ff7a1f;
+  --orange-pop: #c4520f;
+  --retry: #b49cff;
   --seg-off: #22303d;
   --good: #5acb8c;
   --good-bg: #123022;
@@ -78,6 +87,10 @@
   --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
   color-scheme: dark;
 }
+
+/* The colour of the course on screen: Basic unless data-course="advanced" (set on <body> for each screen, and on the Advanced card). */
+:root { --course: var(--cyan); --course-line: var(--cyan-line); --course-pop: var(--cyan-pop); }
+[data-course="advanced"] { --course: var(--orange); --course-line: var(--orange-line); --course-pop: var(--orange-pop); }
 
 [hidden] { display: none !important; }
 *, *::before, *::after { box-sizing: border-box; }
@@ -105,7 +118,7 @@ body.has-dock .wrap { padding-bottom: var(--dock-space); }
 .view { display: grid; gap: 20px; min-width: 0; }
 
 button { font: inherit; color: inherit; }
-:focus-visible { outline: 3px solid var(--accent-strong); outline-offset: 2px; }
+:focus-visible { outline: 3px solid var(--course-line); outline-offset: 2px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 /* Name plate */
@@ -152,8 +165,9 @@ button { font: inherit; color: inherit; }
   min-height: 44px;
 }
 .btn:hover:not(:disabled) { border-color: var(--muted); }
-.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn.primary { background: var(--course); color: var(--on-neon); border-color: var(--course); }
 .btn.primary:hover:not(:disabled) { opacity: .9; }
+.btn.primary:disabled { background: var(--seg-off); border-color: var(--seg-off); color: var(--muted); opacity: 1; }
 .btn.danger { background: var(--bad); border-color: var(--bad); color: var(--surface); }
 .btn.small { min-height: 36px; padding: 6px 12px; font-size: var(--step--1); }
 .btn:disabled { opacity: .4; cursor: default; }
@@ -182,7 +196,7 @@ button { font: inherit; color: inherit; }
 :where(.panel) p { margin: 0; }
 
 .bar { display: block; height: 4px; border-radius: 2px; background: var(--seg-off); overflow: hidden; }
-.bar span { display: block; height: 100%; background: var(--accent-strong); transform: translateX(-100%); transition: transform .25s cubic-bezier(.25, 1, .5, 1); }
+.bar span { display: block; height: 100%; background: var(--course-line); transform: translateX(-100%); transition: transform .25s cubic-bezier(.25, 1, .5, 1); }
 
 /* Courses (home) */
 .courses { display: grid; gap: 12px; }
@@ -201,10 +215,11 @@ button { font: inherit; color: inherit; }
   color: var(--ink);
   cursor: pointer;
 }
-.course-card:hover { border-color: var(--accent); }
+.course-card:hover { border-color: var(--course-line); }
 .course-name { grid-column: 1; grid-row: 1; font-family: var(--font-display); font-weight: 700; font-size: var(--step-3); line-height: 1; }
 .course-sub { grid-column: 1; grid-row: 2; color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
-.course-card .chev { grid-column: 2; grid-row: 1 / 3; align-self: center; }
+.course-card .chev { grid-column: 2; grid-row: 1 / 3; align-self: center; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--course); color: var(--on-neon); }
+.course-card .chev svg { display: block; width: 20px; height: 20px; }
 .course-card .bar { grid-column: 1 / -1; grid-row: 3; height: 6px; border-radius: 3px; }
 .chev { font-size: 1.5rem; line-height: 1; color: var(--muted); }
 .secondary { display: flex; justify-content: center; }
@@ -227,7 +242,7 @@ button { font: inherit; color: inherit; }
   color: var(--ink);
   cursor: pointer;
 }
-.back-btn:hover { color: var(--accent-ink); }
+.back-btn:hover { color: var(--course-line); }
 .back-btn svg { display: block; width: 30px; height: 30px; }
 /* Touch area of 44px around the 38px arrow and the 36px play-screen icons, without moving anything. */
 .back-btn, .icon-btn { position: relative; }
@@ -263,7 +278,7 @@ button { font: inherit; color: inherit; }
 .row:first-child { border-top: 0; }
 /* The list clips anything outside a row, so the focus ring is drawn inside it. */
 .row:focus-visible { outline-offset: -3px; }
-.row:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+.row:hover:not(:disabled) { background: color-mix(in srgb, var(--course) 8%, var(--surface)); }
 .row-label { grid-column: 1; font-family: var(--font-display); font-weight: 600; font-size: var(--step--1); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
 .row-title { grid-column: 1; font-weight: 700; font-size: var(--step-1); }
 .row-sub { grid-column: 1; color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
@@ -278,9 +293,9 @@ button { font: inherit; color: inherit; }
 .section-row.has-label .row-side { grid-row: 1 / span 2; }
 .section-row .bar { grid-column: 1 / -1; }
 .row.is-locked .row-label, .row.is-locked .row-title, .row.is-locked .row-sub { color: var(--muted); opacity: .9; }
-.row[aria-expanded="true"] { background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+.row[aria-expanded="true"] { background: color-mix(in srgb, var(--course) 8%, var(--surface)); }
 .unit-progress { display: block; width: 72px; height: 8px; border-radius: 4px; background: var(--seg-off); overflow: hidden; }
-.unit-progress span { display: block; height: 100%; border-radius: 4px; background: var(--accent-strong); }
+.unit-progress span { display: block; height: 100%; border-radius: 4px; background: var(--course-line); }
 
 /* Pop-ups: floating over the unit list, or under the X and Hint buttons while playing */
 .rows-wrap { position: relative; }
@@ -307,15 +322,16 @@ button { font: inherit; color: inherit; }
   transform: rotate(45deg);
 }
 .bubble.is-above::before { top: auto; bottom: -6px; }
-.bubble :focus-visible { outline-color: var(--focus-pop); }
+.bubble :focus-visible { outline-color: var(--course-pop); }
 .bubble p { position: relative; margin: 0; font-weight: 700; }
 .bubble .btn { position: relative; width: 100%; min-height: 48px; font-size: var(--step-1); background: var(--bg); color: var(--ink); border-color: var(--bg); }
+.bubble .btn.primary { background: var(--course); color: var(--on-neon); border-color: var(--course); }
 .bubble.is-locked { background: var(--seg-off); color: var(--ink); }
 .bubble .bubble-name { font-size: var(--step-1); }
 .bubble .bubble-name + p { font-weight: 400; }
 @keyframes bubble-in { from { opacity: 0; transform: translateY(-4px); } }
 .status-perfect { color: var(--good); }
-.status-progress { color: var(--accent-ink); }
+.status-progress { color: var(--course-line); }
 .lock { display: inline-flex; color: var(--muted); }
 .lock svg { display: block; width: 16px; height: 16px; }
 
@@ -339,8 +355,8 @@ button { font: inherit; color: inherit; }
 }
 .icon-btn:hover { color: var(--ink); }
 .icon-btn svg { display: block; width: 20px; height: 20px; }
-.hint-btn { margin-left: 0; margin-right: -8px; color: var(--accent-ink); }
-.hint-btn:hover:not(:disabled) { color: var(--accent); }
+.hint-btn { margin-left: 0; margin-right: -8px; color: var(--course-line); }
+.hint-btn:hover:not(:disabled) { color: var(--ink); }
 .hint-btn:disabled { opacity: .4; cursor: default; }
 .hint-btn svg { width: 22px; height: 22px; }
 .play-pop { width: min(300px, calc(100% - 24px)); }
@@ -358,7 +374,7 @@ button { font: inherit; color: inherit; }
 .progress-text strong { color: var(--ink); }
 
 .unit-bar { height: 10px; border-radius: 5px; background: var(--seg-off); overflow: hidden; }
-.unit-bar span { display: block; height: 100%; border-radius: 5px; background: var(--accent-strong); transform: translateX(-100%); transition: transform .25s cubic-bezier(.25, 1, .5, 1); }
+.unit-bar span { display: block; height: 100%; border-radius: 5px; background: var(--course-line); transform: translateX(-100%); transition: transform .25s cubic-bezier(.25, 1, .5, 1); }
 .unit-bar.is-retry span { background: var(--retry); }
 .phase-label { margin: -8px 0 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step--1); text-transform: uppercase; letter-spacing: .1em; color: var(--retry); }
 
@@ -392,7 +408,7 @@ button { font: inherit; color: inherit; }
   cursor: pointer;
   transition: border-color .15s ease, background-color .15s ease, opacity .15s ease;
 }
-.opt:hover:not(:disabled) { border-color: var(--accent); }
+.opt:hover:not(:disabled) { border-color: var(--course-line); }
 .opt:disabled { cursor: default; color: var(--ink); }
 .opt .key {
   display: inline-grid; place-items: center;
@@ -402,8 +418,8 @@ button { font: inherit; color: inherit; }
   font-family: var(--font-mono); font-weight: 500; font-size: var(--step-0);
 }
 .opt .txt { min-width: 0; padding-top: 2px; overflow-wrap: anywhere; }
-.opt.is-selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); box-shadow: inset 0 0 0 1px var(--accent); }
-.opt.is-selected .key { border-color: var(--accent); color: var(--accent-ink); }
+.opt.is-selected { border-color: var(--course-line); background: color-mix(in srgb, var(--course) 14%, var(--surface)); box-shadow: inset 0 0 0 1px var(--course-line); }
+.opt.is-selected .key { border-color: var(--course-line); background: var(--course); color: var(--on-neon); }
 .opt.is-correct { border-color: var(--good); background: var(--good-bg); }
 .opt.is-correct .key { border-color: var(--good); background: var(--good); color: var(--surface); }
 .opt.is-wrong { border-color: var(--bad); background: var(--bad-bg); }
@@ -433,13 +449,13 @@ legend { padding: 0; margin-bottom: 8px; }
 .choice span b { font-size: var(--step-1); }
 .choice span small { color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
 .choice:hover span { border-color: var(--muted); }
-.choice input:checked + span { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); box-shadow: inset 0 0 0 1px var(--accent); }
-.choice input:focus-visible + span { outline: 3px solid var(--accent-strong); outline-offset: 2px; }
+.choice input:checked + span { border-color: var(--course-line); background: color-mix(in srgb, var(--course) 14%, var(--surface)); box-shadow: inset 0 0 0 1px var(--course-line); }
+.choice input:focus-visible + span { outline: 3px solid var(--course-line); outline-offset: 2px; }
 .home-actions { display: grid; gap: 12px; justify-items: start; }
 
 /* Run results (All questions) */
 .score { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
-.score-pct { font-family: var(--font-mono); font-weight: 500; font-size: 3rem; line-height: 1; color: var(--accent-ink); font-variant-numeric: tabular-nums; }
+.score-pct { font-family: var(--font-mono); font-weight: 500; font-size: 3rem; line-height: 1; color: var(--course-line); font-variant-numeric: tabular-nums; }
 .score-count { color: var(--muted); font-size: var(--step-1); font-variant-numeric: tabular-nums; }
 
 /* Pinned action dock */
@@ -492,16 +508,16 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       <h1 id="home-title" tabindex="-1">Go HAM</h1>
     </header>
     <div class="courses">
-      <button class="course-card" id="course-basic" type="button">
+      <button class="course-card" id="course-basic" type="button" data-course="basic">
         <span class="course-name">Basic</span>
         <span class="course-sub"></span>
-        <span class="chev" aria-hidden="true">&rsaquo;</span>
+        <span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 4.5 16.5 12 9 19.5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         <span class="bar" role="img"><span></span></span>
       </button>
-      <button class="course-card" id="course-advanced" type="button">
+      <button class="course-card" id="course-advanced" type="button" data-course="advanced">
         <span class="course-name">Advanced</span>
         <span class="course-sub"></span>
-        <span class="chev" aria-hidden="true">&rsaquo;</span>
+        <span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 4.5 16.5 12 9 19.5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         <span class="bar" role="img"><span></span></span>
       </button>
     </div>
@@ -1157,6 +1173,8 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
     }
     view = st.v;
     VIEWS.forEach(function (name) { $('view-' + name).hidden = name !== view; });
+    // Each course has its own colour: cyan for Basic, orange for Advanced.
+    document.body.dataset.course = (view === 'play' ? playUnit().course.key : st.c) || 'basic';
     closePlayPops();
     if (view === 'home') renderHome();
     if (view === 'sections') renderSections(courses[st.c]);
@@ -1439,7 +1457,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border: 1p
       bubble.appendChild(el('p', '', lockMessage(u)));
     } else {
       var resume = !!(ust.attempt && ust.attempt.unit === u.key);
-      var start = el('button', 'btn', resume ? 'Resume' : 'Start');
+      var start = el('button', 'btn primary', resume ? 'Resume' : 'Start');
       start.type = 'button';
       start.addEventListener('click', function () { openUnit(u); });
       bubble.appendChild(start);
