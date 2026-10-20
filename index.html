@@ -147,7 +147,12 @@ button { font: inherit; color: inherit; }
 .btn:active:not(:disabled), .course-card:active, .row:active:not(:disabled) { --lip-size: 2px; transform: translateY(4px); }
 .opt:active:not(:disabled) { --lip-size: 1px; transform: translateY(3px); }
 .btn.primary { background: var(--course); color: var(--off-white); text-shadow: 0 1px 2px rgba(0, 0, 0, .45); --lip-color: var(--course-shade); }
-.btn.primary:hover:not(:disabled) { opacity: .9; }
+/* Hover colours are for a mouse only: on a phone a tap also counts as hover, and tapping changes no colours (the owner's
+   choice, 2026-10-20); pressing down is the feedback. */
+/* Buttons and coloured cards dim on hover by a faint shade over their own colour, which leaves the text at full strength and
+   shows on every colour, cyan included. (The doubled class outranks the colour rules, such as the green or red Next, that reset
+   the background.) */
+@media (hover: hover) and (pointer: fine) { .btn.btn:hover:not(:disabled) { background-image: linear-gradient(rgba(0, 0, 0, .05), rgba(0, 0, 0, .05)); } }
 .btn.primary:disabled { background: var(--seg-off); color: var(--muted); text-shadow: none; opacity: 1; }
 .btn.danger { background: var(--bad); color: var(--surface); --lip-color: color-mix(in srgb, var(--bad) 62%, #000); }
 .btn.small { min-height: 36px; padding: 6px 12px; font-size: var(--step--1); }
@@ -157,7 +162,7 @@ button { font: inherit; color: inherit; }
   color: var(--muted); font-size: var(--step--1); font-weight: 700;
   text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
 }
-.link-btn:hover:not(:disabled) { color: var(--ink); }
+@media (hover: hover) and (pointer: fine) { .link-btn:hover:not(:disabled) { color: var(--ink); } }
 .link-btn:disabled { opacity: .45; text-decoration: none; cursor: default; }
 .nav-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
@@ -198,8 +203,7 @@ button { font: inherit; color: inherit; }
   color: var(--ink);
   cursor: pointer;
 }
-.course-card:hover, .row:hover:not(:disabled) { background: color-mix(in srgb, var(--course) 8%, var(--surface)); }
-.course-card:active, .row:active:not(:disabled) { background: color-mix(in srgb, var(--course) 16%, var(--surface)); }
+@media (hover: hover) and (pointer: fine) { .row.is-locked:hover { background: color-mix(in srgb, var(--course) 8%, var(--surface)); } }
 .course-name { grid-column: 1; grid-row: 1; font-family: var(--font-display); font-weight: 700; font-size: var(--step-3); line-height: 1; }
 .course-sub { grid-column: 1; grid-row: 2; color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
 .course-card .chev { grid-column: 2; grid-row: 1 / 3; align-self: center; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--course); color: var(--on-neon); }
@@ -226,7 +230,7 @@ button { font: inherit; color: inherit; }
   color: var(--ink);
   cursor: pointer;
 }
-.back-btn:hover { color: var(--course-line); }
+@media (hover: hover) and (pointer: fine) { .back-btn:hover { color: var(--course-line); } }
 .back-btn svg { display: block; width: 30px; height: 30px; }
 /* Touch area of 44px around the 38px arrow and the 36px play-screen icons, without moving anything. */
 .back-btn, .icon-btn { position: relative; }
@@ -270,7 +274,6 @@ button { font: inherit; color: inherit; }
 .section-row.has-label .row-side { grid-row: 1 / span 2; }
 .section-row .bar { grid-column: 1 / -1; }
 .row.is-locked .row-label, .row.is-locked .row-title, .row.is-locked .row-sub { color: var(--muted); opacity: .9; }
-.row[aria-expanded="true"] { background: color-mix(in srgb, var(--course) 8%, var(--surface)); }
 /* Units are square cards on a winding path, one under another: centred, then half a card and a whole card to the left,
    back through the centre and out to the right, every eight units. The offset is `left`, so the press and flip keep `transform`. */
 .unit-path { justify-items: start; gap: 28px; }
@@ -323,8 +326,7 @@ button { font: inherit; color: inherit; }
   text-shadow: 0 1px 2px rgba(0, 0, 0, .45);
 }
 .course-card .chev { background: var(--course-shade); color: var(--ink); }
-.course-card:hover, .row:not(.is-locked):hover { background: color-mix(in srgb, var(--course) 88%, #fff); }
-.course-card:active, .row:not(.is-locked):active, .row:not(.is-locked)[aria-expanded="true"] { background: color-mix(in srgb, var(--course) 85%, #000); }
+@media (hover: hover) and (pointer: fine) { .course-card:hover, .row:not(.is-locked):hover { background-image: linear-gradient(rgba(0, 0, 0, .05), rgba(0, 0, 0, .05)); } }
 .course-card .bar, .row .bar { background: var(--course-shade); }
 .course-card .bar span, .row .bar span { background: var(--lime); }
 /* All text and arrows on the course-coloured cards are the same off-white as the titles (the owner's choice, low contrast on the neon). */
@@ -471,8 +473,7 @@ button { font: inherit; color: inherit; }
 /* ...then the card is pressed like a tapped button and held to charge up, springs high into the air and turns a full circle
    towards you. Its back is plain grey; it changes to the course colour at the second edge-on moment, so the rest of the turn
    shows the unlocked card. It falls faster and faster, lands with another tap-like press that absorbs the impact, and rises
-   back to normal. Each press is the cards' :active state, down 4px onto a 2px edge with no squash; only the landing press
-   takes the pressed colour, so the card stays grey until it turns over.
+   back to normal. Each press is the cards' :active state, down 4px onto a 2px edge with no squash and no colour change.
    One 1.25s timeline: launch at 24%, 90 degrees at 36.5%, 270 degrees at 61.5%, landing at 74%. */
 .row.is-flipping {
   position: relative;
@@ -512,14 +513,14 @@ button { font: inherit; color: inherit; }
   0%, 24% { transform: perspective(700px) rotateX(0); animation-timing-function: linear; }
   74%, to { transform: perspective(700px) rotateX(360deg); }
 }
-/* Colour and edge: plain grey until the second edge-on moment, including through the charge-up press (no tint, user request
-   2026-10-19), then the course colour; each press shrinks the edge, and the landing press shades the card like a tap. */
+/* Colour and edge: plain grey until the second edge-on moment, including through the charge-up press, then the course colour.
+   Each press only shrinks the edge; like a tap, it changes no colour (the owner's choices, 2026-10-19 and 2026-10-20). */
 @keyframes card-face {
   0% { background-color: var(--surface); --thick: 6; --slab-color: var(--card-edge); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
   8%, 24% { background-color: var(--surface); --thick: 2; --slab-color: var(--card-edge); animation-timing-function: linear; }
   25%, 61.5% { background-color: var(--surface); --thick: 6; --slab-color: var(--card-edge); }
   61.6%, 74% { background-color: var(--course); --thick: 6; --slab-color: var(--course-shade); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
-  79%, 86% { background-color: color-mix(in srgb, var(--course) 85%, #000); --thick: 2; --slab-color: var(--course-shade); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  79%, 86% { background-color: var(--course); --thick: 2; --slab-color: var(--course-shade); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
   to { background-color: var(--course); --thick: 6; --slab-color: var(--course-shade); }
 }
 /* Contents: hidden while the back faces you, from the first edge-on moment to the second. */
@@ -543,20 +544,20 @@ button { font: inherit; color: inherit; }
   color: var(--muted);
   cursor: pointer;
 }
-.icon-btn:hover { color: var(--ink); }
+@media (hover: hover) and (pointer: fine) { .icon-btn:hover:not(:disabled) { color: var(--ink); } }
 .icon-btn svg { display: block; width: 20px; height: 20px; }
 .hint-btn { margin-left: 0; margin-right: -8px; color: var(--muted); }
-.hint-btn:hover:not(:disabled) { color: var(--course-line); }
+/* The hint is grey and brightens on hover like the X; it takes the course colour only while selected (its pop-up open). */
+.icon-btn.hint-btn[aria-expanded="true"] { color: var(--course-line); }
 .hint-btn:disabled { opacity: .4; cursor: default; }
 .hint-btn svg { width: 22px; height: 22px; }
 .play-pop { width: min(300px, calc(100% - 24px)); }
 #leave-pop { left: 12px; }
 #hint-pop { right: 12px; }
 
-/* Settings gear at the right of the home heading: grey, the course colour on hover, like the hint.
+/* Settings gear at the right of the home heading: grey, brightening on hover like the X and the hint.
    Its negative margins keep the heading row the title's height, so the course cards don't move. */
 .settings-btn { align-self: center; margin: -2px -8px -2px 0; }
-.settings-btn:hover { color: var(--course-line); }
 .settings-btn svg { width: 24px; height: 24px; }
 
 /* Settings page */
@@ -616,7 +617,7 @@ button { font: inherit; color: inherit; }
   box-shadow: 0 var(--lip-size) 0 var(--lip-color), 0 8px 16px rgba(0, 0, 0, .3);
   transition: background-color .15s ease, opacity .15s ease;
 }
-.opt:not(.is-selected):hover:not(:disabled) { background: color-mix(in srgb, var(--course) 8%, var(--surface-raised)); }
+@media (hover: hover) and (pointer: fine) { .opt:not(.is-selected):hover:not(:disabled) { background: color-mix(in srgb, var(--course) 8%, var(--surface-raised)); } }
 .opt:disabled { cursor: default; color: var(--ink); }
 .opt .key {
   display: inline-grid; place-items: center;
@@ -659,7 +660,7 @@ legend { padding: 0; margin-bottom: 8px; }
 }
 .choice span b { font-size: var(--step-1); }
 .choice span small { color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
-.choice:hover span { background: color-mix(in srgb, var(--course) 8%, var(--surface-raised)); }
+@media (hover: hover) and (pointer: fine) { .choice:hover span { background: color-mix(in srgb, var(--course) 8%, var(--surface-raised)); } }
 .choice input:checked + span { background: color-mix(in srgb, var(--course) 18%, var(--surface-raised)); }
 .choice input:focus-visible + span { outline: 3px solid var(--course-line); outline-offset: 2px; }
 .home-actions { display: grid; gap: 12px; justify-items: start; }
@@ -1702,6 +1703,10 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     return row;
   }
 
+  // A pop-up's pointer keeps at least this far from its sides (its 12px rounded corners plus the pointer's own half-width),
+  // so it always joins the straight part of the top edge.
+  var CARET_MIN = 16;
+
   // Floats just below its unit, over the units that follow, so nothing in the list moves.
   // Near the end of the list, where there's no room below, it opens above the unit instead. Its pointer aims at the unit.
   function placeBubble() {
@@ -1714,7 +1719,8 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     bubble.style.top = (flip ? above : below) + 'px';
     var unitBox = bubbleRow.getBoundingClientRect();
     var wrapBox = $('units-wrap').getBoundingClientRect();
-    bubble.style.setProperty('--caret', Math.round(unitBox.left + unitBox.width / 2 - wrapBox.left - bubble.offsetLeft - 7) + 'px');
+    var caret = Math.round(unitBox.left + unitBox.width / 2 - wrapBox.left - bubble.offsetLeft - 7);
+    bubble.style.setProperty('--caret', Math.min(Math.max(caret, CARET_MIN), bubble.offsetWidth - CARET_MIN - 14) + 'px');
   }
 
   window.addEventListener('resize', placeBubble);
@@ -2131,17 +2137,29 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     $('leave-pop').hidden = true;
     $('hint-pop').hidden = true;
     $('reset-pop').hidden = true;
+    ['play-leave', 'play-hint', 'reset-btn'].forEach(function (id) { $(id).setAttribute('aria-expanded', 'false'); });
   }
 
-  // Floats just under the button that opened it, pointing at that button.
+  // Floats just under the button that opened it, pointing at that button. For a button near the side of the screen (the X,
+  // the hint), the pop-up moves over so its pointer stays clear of the rounded corner.
   function togglePop(id, btn) {
     var pop = $(id);
     var wasOpen = !pop.hidden;
     closePops();
     if (wasOpen) return;
     pop.hidden = false;
+    pop.style.left = '';
+    pop.style.right = '';
     pop.style.top = (btn.offsetTop + btn.offsetHeight + 10) + 'px';
-    pop.style.setProperty('--caret', (btn.offsetLeft + btn.offsetWidth / 2 - pop.offsetLeft - 7) + 'px');
+    var caret = btn.offsetLeft + btn.offsetWidth / 2 - pop.offsetLeft - 7;
+    var shift = Math.max(0, CARET_MIN - caret) - Math.max(0, caret - (pop.offsetWidth - CARET_MIN - 14));
+    if (shift) {
+      pop.style.left = (pop.offsetLeft - shift) + 'px';
+      pop.style.right = 'auto';
+      caret += shift;
+    }
+    pop.style.setProperty('--caret', caret + 'px');
+    btn.setAttribute('aria-expanded', 'true');
     pop.querySelector('button').focus({ preventScroll: true });
   }
 
