@@ -276,7 +276,7 @@ button { font: inherit; color: inherit; }
 .row.is-locked .row-label, .row.is-locked .row-title, .row.is-locked .row-sub { color: var(--muted); opacity: .9; }
 /* Units are square cards on a winding path, one under another: centred, then half a card and a whole card to the left,
    back through the centre and out to the right, every eight units. The offset is `left`, so the press and flip keep `transform`. */
-.unit-path { justify-items: start; gap: 28px; }
+.unit-path { position: relative; justify-items: start; gap: 28px; }
 .unit-sq {
   --sq: 76px;
   grid-template-columns: none;
@@ -291,9 +291,41 @@ button { font: inherit; color: inherit; }
   margin-left: round(down, (100% - var(--sq)) / 2, 1px);
   position: relative;
   left: calc(var(--path, 0) * var(--sq));
-  overflow: hidden;
 }
 .unit-sq .row-side { grid-column: auto; grid-row: auto; display: grid; place-items: center; }
+/* The current unit (the one to do next) calls to be tapped: every --call-loop (read by startCalling) it presses down like a
+   tapped button and springs back, and as it bottoms out a ring the shape of the card leaves its base, spreading and fading.
+   The first ring leaves 2s after the list opens. The press and ring run at the same speed at any loop length; only the
+   pause between presses changes. A newly unlocked unit sends a bigger first ring as it lands from its flip, and the loop
+   carries on from there. No call starts while the card is pressed for real or its pop-up is open, and any ring under way is
+   hidden. A tap on any unit sends the same ring from its base, only quicker, as a tap is quicker than the loop. The rings
+   are layers first in the list, so they sit behind every card, placed over the card's base (its own shape, 6px lower) by
+   placeRing. */
+:root { --call-loop: 2s; }
+.waves, .ripple { position: absolute; border-radius: 18px; pointer-events: none; }
+.waves > span, .ripple::before {
+  content: "";
+  position: absolute; inset: 0;
+  border: 2.5px solid var(--ring, var(--course));
+  border-radius: inherit;
+  opacity: 0;
+}
+/* Down in 0.12s, held, and back up by 0.41s, at any loop length. */
+.unit-sq.is-calling { animation: call-press .408s; }
+@keyframes call-press {
+  0% { translate: 0 0; box-shadow: 0 6px 0 var(--lip-color), var(--shadow); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  29.4%, 47.1% { translate: 0 4px; box-shadow: 0 2px 0 var(--lip-color), var(--shadow); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  100% { translate: 0 0; box-shadow: 0 6px 0 var(--lip-color), var(--shadow); }
+}
+/* The ring leaves as the card bottoms out, 0.12s into its press. */
+.waves > span { animation: call-wave .9s cubic-bezier(.2, .6, .4, 1) .12s forwards; }
+@keyframes call-wave { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(1.75); opacity: 0; } }
+/* The landing ring: thicker, brighter, slower, and spreading further. */
+.waves > .is-big { border-width: 3.5px; animation: call-wave-big 1.2s cubic-bezier(.2, .6, .4, 1) forwards; }
+@keyframes call-wave-big { 0% { transform: scale(1); opacity: .9; } 100% { transform: scale(2.4); opacity: 0; } }
+.unit-sq.is-calling:active, .unit-sq.is-calling[aria-expanded="true"] { animation: none; }
+.unit-path:has(.is-current:active) .waves, .unit-path:has(.is-current[aria-expanded="true"]) .waves { visibility: hidden; }
+.ripple::before { animation: call-wave .55s cubic-bezier(.2, .6, .4, 1) forwards; }
 .unit-sq .lock { width: 30px; }
 .unit-sq .lock svg { width: 30px; height: 30px; }
 .unit-sq .unlock-fx { right: auto; left: 50%; margin: -15px 0 0 -15px; }
@@ -714,6 +746,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   .bubble, .spark, .unlock-fx, .unlock-fx .lock-shackle, .row.is-flipping, .row.is-flipping > :not(.slab) { animation: none; }
   .unit-sq.is-completing .star-fill, .unit-sq.is-popping .star, .course-card.is-shining::after, .row.is-shining::after { animation: none; }
   .fx-ball, .fx-ball::before, .fx-ball::after, .chev.is-popping svg, .course-card.is-landing, .row.is-landing { animation: none; }
+  .unit-sq.is-calling, .waves > span, .ripple::before { animation: none; }
 }
 </style>
 
@@ -1441,7 +1474,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       row.scrollIntoView({ block: 'center' });
       row.focus({ preventScroll: true });
     }
-    if (view === 'units') unitsFx();
+    if (view === 'units') startCalling(unitsFx());
     if (view === 'sections') sectionsFx();
     if (view === 'home') homeFx();
   }
@@ -1535,6 +1568,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   // ---- Home ----------------------------------------------------------------
 
   function renderHome() {
+    $('course-basic').parentNode.style.paddingBottom = '';
     ['basic', 'advanced'].forEach(function (c) {
       var course = courses[c];
       var card = $('course-' + c);
@@ -1589,6 +1623,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     $('sections-title').textContent = course.name;
     var list = $('sections-list');
     list.textContent = '';
+    list.style.paddingBottom = '';
     course.sections.forEach(function (sec, i) {
       var perfect = perfectCount(sec.units);
       var locked = !isUnlocked(sec.units[0]);
@@ -1658,15 +1693,24 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     }
   }
 
+  // The unit to do next in a course: its first unlocked unit not yet completed.
+  function currentUnit(course) {
+    for (var i = 0; i < course.flat.length; i++) {
+      if (isUnlocked(course.flat[i]) && !isPerfect(course.flat[i])) return course.flat[i];
+    }
+    return null;
+  }
+
   function renderUnits(course, sec) {
     $('units-title').textContent = course.name + ', Section ' + sec.n;
     closeBubble();
     var list = $('units-list');
     list.textContent = '';
+    var current = currentUnit(course);
     sec.units.forEach(function (u, i) {
       var locked = !isUnlocked(u);
       var done = !locked && isPerfect(u);
-      var row = el('button', 'row unit-sq' + (locked ? ' is-locked' : done ? ' is-done' : ''));
+      var row = el('button', 'row unit-sq' + (locked ? ' is-locked' : done ? ' is-done' : '') + (u === current ? ' is-current' : ''));
       row.type = 'button';
       row.dataset.unit = u.key;
       row.style.setProperty('--path', PATH[i % PATH.length]);
@@ -1676,10 +1720,88 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       row.appendChild(unitFace(u, locked, done));
       row.addEventListener('click', function (e) {
         e.stopPropagation();
+        rippleFx(row);
         toggleBubble(row, u);
       });
       list.appendChild(row);
     });
+  }
+
+  // Puts a ring layer (the waves or a ripple) over a unit's base: the card's own shape, 6px lower, behind the cards.
+  function placeRing(ring, row) {
+    ring.style.left = row.offsetLeft + 'px';
+    ring.style.top = (row.offsetTop + 6) + 'px';
+    ring.style.width = row.offsetWidth + 'px';
+    ring.style.height = row.offsetHeight + 'px';
+  }
+
+  window.addEventListener('resize', function () {
+    document.querySelectorAll('#units-list .waves, #units-list .ripple').forEach(function (ring) {
+      var row = document.querySelector('#units-list .row[data-unit="' + ring.dataset.unit + '"]');
+      if (row) placeRing(ring, row);
+    });
+  });
+
+  // The current unit calls to be tapped (see .is-calling): a press and a ring every --call-loop, the first ring leaving 2s
+  // after the list opens, whether from Sections or back from a unit. After an unlock on this list, the newly unlocked unit's
+  // landing press sends a big ring instead (at landAt), and the loop carries on from that ring.
+  var callTimer = 0;
+  var CALL_DOWN = 120; // ms from the start of a press to the card bottoming out, when its ring leaves (see call-press)
+  var CALL_WAIT = 2000; // ms from the list opening to its first ring
+  function callLoop() {
+    var v = getComputedStyle(document.documentElement).getPropertyValue('--call-loop').trim();
+    var ms = parseFloat(v) * (/ms$/.test(v) ? 1 : 1000);
+    return ms > 500 ? ms : 1500;
+  }
+
+  function startCalling(landAt) {
+    clearTimeout(callTimer);
+    var row = document.querySelector('#units-list .row.is-current');
+    if (!row || reduceMotion()) return;
+    var waves = el('span', 'waves');
+    waves.setAttribute('aria-hidden', 'true');
+    waves.dataset.unit = row.dataset.unit;
+    placeRing(waves, row);
+    $('units-list').insertBefore(waves, $('units-list').firstChild);
+    function calling() { return row.isConnected && view === 'units'; }
+    function ring(cls) {
+      var span = el('span', cls);
+      waves.appendChild(span);
+      setTimeout(function () { span.remove(); }, 1400);
+    }
+    function press() {
+      if (!calling()) return;
+      callTimer = setTimeout(press, callLoop());
+      if (row.matches(':active') || row.getAttribute('aria-expanded') === 'true') return;
+      // Restarted for each press, and taken off once it's over so nothing replays when a real press or the pop-up ends.
+      row.classList.remove('is-calling');
+      void row.offsetWidth;
+      row.classList.add('is-calling');
+      setTimeout(function () { row.classList.remove('is-calling'); }, 420);
+      ring();
+    }
+    if (!landAt) {
+      callTimer = setTimeout(press, CALL_WAIT - CALL_DOWN);
+      return;
+    }
+    callTimer = setTimeout(function () {
+      if (!calling()) return;
+      ring('is-big');
+      callTimer = setTimeout(press, callLoop() - CALL_DOWN);
+    }, landAt);
+  }
+
+  // A tap on any unit sends a single ring out from its base, like the calling ring but quicker: the course colour, or grey
+  // from a locked unit.
+  function rippleFx(row) {
+    if (reduceMotion()) return;
+    var ripple = el('span', 'ripple');
+    ripple.setAttribute('aria-hidden', 'true');
+    ripple.dataset.unit = row.dataset.unit;
+    if (row.classList.contains('is-locked')) ripple.style.setProperty('--ring', 'var(--muted)');
+    placeRing(ripple, row);
+    $('units-list').insertBefore(ripple, $('units-list').firstChild);
+    setTimeout(function () { ripple.remove(); }, 600);
   }
 
   function lockMessage(u) {
@@ -1975,8 +2097,25 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     setTimeout(function () { row.classList.remove('is-completing', 'is-popping', 'is-shining'); }, delay + 1350);
   }
 
+  // Celebrations play where they can be seen. If the cards taking part aren't all wholly on screen, with room around them for
+  // sparks and above an unlocking card for its jump, the page scrolls at once, before anything plays, to centre them; if they
+  // can't all fit, the topmost one goes to the top.
+  function showFx(cards) {
+    var top = Infinity, bottom = -Infinity;
+    cards.forEach(function (card) {
+      if (!card) return;
+      var box = card.getBoundingClientRect();
+      top = Math.min(top, box.top - (card.classList.contains('is-unlocking') ? 60 : 16));
+      bottom = Math.max(bottom, box.bottom + 16);
+    });
+    var room = window.innerHeight;
+    if (top === Infinity || (top >= 0 && bottom <= room)) return;
+    window.scrollBy(0, Math.round(bottom - top > room ? top : (top + bottom - room) / 2));
+  }
+
+  // Returns when the current unit lands from its unlock, if it unlocked on this list, for its first ring; otherwise 0.
   function unitsFx() {
-    if (!celebrate) return;
+    if (!celebrate) return 0;
     var row = celebrate.unit && document.querySelector('#units-list .row[data-unit="' + celebrate.unit + '"]');
     // The completed unit has its moment first; the units it unlocked wait, looking locked, until its shine and gloss are done.
     var unlockAt = 450;
@@ -1985,11 +2124,18 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       completeFx(row, 150);
       unlockAt = 1600;
     }
+    var landAt = 0;
+    var shown = [row];
     celebrate.unlocked = celebrate.unlocked.filter(function (key) {
       var r = document.querySelector('#units-list .row[data-unit="' + key + '"]');
       unlockFx(r, unlockAt);
+      // Its landing press bottoms out 79% into the 1.25s turn, which starts 0.5s into the unlock.
+      if (r && r.classList.contains('is-current')) landAt = unlockAt + 1488;
+      shown.push(r);
       return !r;
     });
+    showFx(shown);
+    return landAt;
   }
 
   // A section or course just completed: a shine sweeps across its card and leaves it glossy, like a completed unit.
@@ -2076,6 +2222,9 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       void card.offsetHeight;
       card.style.transition = 'height .32s cubic-bezier(.33, 1, .68, 1)';
       card.style.height = after + 'px';
+      // The list keeps its height, so the cards below still glide up when the page is scrolled to its end (see showFx),
+      // rather than the page sliding down to fill the space. Drawing the screen again takes the space back.
+      card.parentNode.style.paddingBottom = (before - after) + 'px';
     }, delay + 3320);
     setTimeout(function () {
       card.classList.remove('is-finale');
@@ -2094,22 +2243,27 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     var rows = document.querySelectorAll('#sections-list .row');
     // A completed section plays its finale first; the section it unlocked follows once that is over.
     var unlockAt = 200;
+    var shown = [];
     course.sections.forEach(function (sec, i) {
       if (sec.key !== celebrate.section) return;
       celebrate.section = null;
       unlockAt = finaleFx(rows[i], 200);
+      shown.push(rows[i]);
     });
     celebrate.unlocked = celebrate.unlocked.filter(function (key) {
       var u = unitByKey[key];
       if (u.course !== course || u.section.units[0] !== u) return true;
       unlockFx(rows[u.section.n - 1], unlockAt);
+      shown.push(rows[u.section.n - 1]);
       return false;
     });
+    showFx(shown);
   }
 
   function homeFx() {
     if (!celebrate || !celebrate.course) return;
     finaleFx($('course-' + celebrate.course), 200);
+    showFx([$('course-' + celebrate.course)]);
     celebrate.course = null;
   }
 
