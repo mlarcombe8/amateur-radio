@@ -2294,11 +2294,8 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       for (var i = 0; i < 19; i++) tilt.push((i % 2 ? 1 : -1) * (.2 + .7 * i / 18));
       tilt.push(0);
       card.animate(tilt.map(function (deg) { return { rotate: deg.toFixed(2) + 'deg' }; }), 950);
-      bar.animate([
-        { opacity: 0, scale: '.6' },
-        { opacity: 1, scale: '1.08', offset: .6 },
-        { opacity: 1, scale: '1' }
-      ], { duration: 300, delay: 970, easing: 'ease-out', fill: 'backwards' });
+      // The bar pops in at its full length as the card opens: it only fades in, quickly, and never changes size.
+      bar.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: 970, easing: 'ease-out', fill: 'backwards' });
     }, delay);
     setTimeout(function () {
       card.style.overflow = '';
