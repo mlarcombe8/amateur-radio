@@ -547,8 +547,10 @@ button { font: inherit; color: inherit; }
 @media (hover: hover) and (pointer: fine) { .icon-btn:hover:not(:disabled) { color: var(--ink); } }
 .icon-btn svg { display: block; width: 20px; height: 20px; }
 .hint-btn { margin-left: 0; margin-right: -8px; color: var(--muted); }
-/* The hint is grey and brightens on hover like the X; it takes the course colour only while selected (its pop-up open). */
+/* The hint is grey and brightens on hover like the X; it takes the course colour only while selected (its pop-up open),
+   and then dims 5% on hover, like the coloured cards. */
 .icon-btn.hint-btn[aria-expanded="true"] { color: var(--course-line); }
+@media (hover: hover) and (pointer: fine) { .icon-btn.hint-btn[aria-expanded="true"]:hover { color: color-mix(in srgb, var(--course-line) 95%, #000); } }
 .hint-btn:disabled { opacity: .4; cursor: default; }
 .hint-btn svg { width: 22px; height: 22px; }
 .play-pop { width: min(300px, calc(100% - 24px)); }
