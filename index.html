@@ -409,6 +409,53 @@ button { font: inherit; color: inherit; }
 /* A completed section or course: the same shine and gloss across the wider, taller card. */
 .course-card.is-shining::after, .section-row.is-shining::after { left: -160px; width: 90px; animation: shine-sweep-wide .75s linear both; }
 @keyframes shine-sweep-wide { 0% { left: -160px; opacity: 0; } 20%, 80% { opacity: 1; } 100% { left: calc(100% + 70px); opacity: 0; } }
+/* A completed section or course shows a lime disc with an off-white check in place of its arrow, and no bar. */
+.course-card .chev.is-check, .row .chev.is-check { background: var(--lime); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .18); color: var(--off-white); }
+.chev.is-check svg { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .45)); }
+.chev.is-popping svg { animation: key-pop .36s cubic-bezier(.22, 1, .36, 1); }
+.course-card.is-done:not(.is-finale) .bar { display: none; }
+/* Its finale (finaleFx): the full bar gathers into a lime ball the size of the arrow disc, which squashes down as the card
+   presses with it, then springs up and over into the disc, turning it into the check; the card presses again as it lands. */
+.fx-ball {
+  position: absolute; z-index: 3;
+  width: var(--d); height: var(--d); margin: calc(var(--d) / -2) 0 0 calc(var(--d) / -2);
+  border-radius: 50%;
+  background: var(--lime);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .18);
+  pointer-events: none;
+  animation: ball-gather .42s cubic-bezier(.65, 0, .35, 1) both;
+}
+@keyframes ball-gather { from { width: var(--w); height: 10px; margin: -5px 0 0 calc(var(--w) / -2); border-radius: 5px; } }
+/* The ball keeps the bar's three-dimensional look: the bar's highlight line gathers into a highlight on its upper left, and a
+   soft shade toward its edge rounds it into a sphere. The check disc it lands in looks the same, so nothing changes on landing. */
+.fx-ball::before, .chev.is-check::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0) 40%, rgba(0, 0, 0, 0) 58%, rgba(0, 0, 0, .3));
+  pointer-events: none;
+}
+.fx-ball::after, .chev.is-check::after {
+  content: "";
+  position: absolute; left: 22%; top: 13%; width: 34%; height: 24%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .55);
+  filter: blur(.4px);
+  pointer-events: none;
+}
+.fx-ball::before { border-radius: inherit; animation: ball-shade .42s cubic-bezier(.65, 0, .35, 1) both; }
+@keyframes ball-shade { from { opacity: 0; } }
+.fx-ball::after { animation: ball-shine .42s cubic-bezier(.65, 0, .35, 1) both; }
+@keyframes ball-shine { from { left: 4px; top: 20%; width: calc(100% - 8px); height: 25%; border-radius: 999px; filter: none; } }
+.chev.is-check { position: relative; }
+.chev.is-check svg { position: relative; z-index: 1; }
+.fx-ball.is-pressing { animation: ball-press .15s cubic-bezier(.33, 1, .68, 1) forwards; }
+@keyframes ball-press { to { transform: translateY(calc(var(--d) / 8)) scale(1.25, .75); } }
+/* While the ball charges, the card presses down with it (a tap's press), and lets go as the ball launches. */
+.course-card.is-finale, .row.is-finale { transition: translate .15s cubic-bezier(.33, 1, .68, 1), box-shadow .15s cubic-bezier(.33, 1, .68, 1), background-color .25s ease-out; }
+.course-card.is-charging, .row.is-charging { translate: 0 4px; box-shadow: 0 2px 0 var(--lip-color), var(--shadow); }
+.course-card.is-landing, .row.is-landing { animation: card-land .48s cubic-bezier(.33, 1, .68, 1); }
+@keyframes card-land { 30%, 45% { translate: 0 4px; box-shadow: 0 2px 0 var(--lip-color), var(--shadow); } }
 /* A row that has just unlocked: it looks locked (grey, with the grey lock) until its moment, then the lock turns the course
    colour, pops and opens on its left side. Its usual contents stay hidden until the card has turned over. */
 .row-side { position: relative; }
@@ -424,15 +471,33 @@ button { font: inherit; color: inherit; }
 /* ...then the card is pressed like a tapped button and held to charge up, springs high into the air and turns a full circle
    towards you. Its back is plain grey; it changes to the course colour at the second edge-on moment, so the rest of the turn
    shows the unlocked card. It falls faster and faster, lands with another tap-like press that absorbs the impact, and rises
-   back to normal. Each press is the cards' :active state: down 4px onto a 2px edge, in the pressed colour, with no squash.
+   back to normal. Each press is the cards' :active state, down 4px onto a 2px edge with no squash; only the landing press
+   takes the pressed colour, so the card stays grey until it turns over.
    One 1.25s timeline: launch at 24%, 90 degrees at 36.5%, 270 degrees at 61.5%, landing at 74%. */
 .row.is-flipping {
   position: relative;
   z-index: 2;
   transition: none;
+  transform-style: preserve-3d;
+  overflow: visible;
+  box-shadow: none;
   animation: card-jump 1.25s forwards, card-turn 1.25s forwards, card-face 1.25s forwards;
 }
-.row.is-flipping > * { animation: card-back 1.25s forwards; }
+.row.is-flipping > :not(.slab) { animation: card-back 1.25s forwards; }
+/* In the air the card keeps its thickness: instead of the painted edge, its edge is a real slab (slabEl) of six layers behind
+   the face, each a step deeper and a step lower, so at rest it lines up exactly with the 6px edge and in the air it shows as a
+   solid edge at every angle, even edge-on. --thick is the edge's depth in px: 6 in the air, 2 while the card is pressed. Each
+   layer is scaled up to cancel the turn's perspective, so the slab matches the painted edge before and after the jump. The
+   deepest layer is the card's plain grey back; a layer behind them all carries the card's soft shadow. */
+@property --thick { syntax: '<number>'; inherits: true; initial-value: 6; }
+.slab, .slab > span { position: absolute; inset: 0; border-radius: inherit; transform-style: preserve-3d; pointer-events: none; }
+.slab > span {
+  --d: calc(var(--thick) * var(--k) / 6);
+  background: var(--slab-color);
+  transform: translate3d(0, calc(var(--d) * (1 + var(--d) / 700) * 1px), calc(var(--d) * -1px)) scale(calc(1 + var(--d) / 700));
+}
+.slab > .slab-back { background: var(--surface); box-shadow: inset 0 -1px 0 var(--slab-color); }
+.slab > .slab-shade { background: none; box-shadow: var(--shadow); transform: translate3d(0, 0, calc(var(--d) * -1px)) scale(calc(1 + var(--d) / 700)); }
 /* Height: launched fast and slowing to the top, then falling faster to the landing. */
 @keyframes card-jump {
   0% { translate: 0 0; animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
@@ -447,14 +512,15 @@ button { font: inherit; color: inherit; }
   0%, 24% { transform: perspective(700px) rotateX(0); animation-timing-function: linear; }
   74%, to { transform: perspective(700px) rotateX(360deg); }
 }
-/* Colour and edge: grey until the second edge-on moment, then the course colour; each press shrinks the edge and shades the card. */
+/* Colour and edge: plain grey until the second edge-on moment, including through the charge-up press (no tint, user request
+   2026-10-19), then the course colour; each press shrinks the edge, and the landing press shades the card like a tap. */
 @keyframes card-face {
-  0% { background-color: var(--surface); box-shadow: 0 6px 0 var(--card-edge), var(--shadow); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
-  8%, 24% { background-color: color-mix(in srgb, var(--course) 16%, var(--surface)); box-shadow: 0 2px 0 var(--card-edge), var(--shadow); animation-timing-function: linear; }
-  25%, 61.5% { background-color: var(--surface); box-shadow: 0 6px 0 var(--card-edge), var(--shadow); }
-  61.6%, 74% { background-color: var(--course); box-shadow: 0 6px 0 var(--course-shade), var(--shadow); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
-  79%, 86% { background-color: color-mix(in srgb, var(--course) 85%, #000); box-shadow: 0 2px 0 var(--course-shade), var(--shadow); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
-  to { background-color: var(--course); box-shadow: 0 6px 0 var(--course-shade), var(--shadow); }
+  0% { background-color: var(--surface); --thick: 6; --slab-color: var(--card-edge); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  8%, 24% { background-color: var(--surface); --thick: 2; --slab-color: var(--card-edge); animation-timing-function: linear; }
+  25%, 61.5% { background-color: var(--surface); --thick: 6; --slab-color: var(--card-edge); }
+  61.6%, 74% { background-color: var(--course); --thick: 6; --slab-color: var(--course-shade); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  79%, 86% { background-color: color-mix(in srgb, var(--course) 85%, #000); --thick: 2; --slab-color: var(--course-shade); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  to { background-color: var(--course); --thick: 6; --slab-color: var(--course-shade); }
 }
 /* Contents: hidden while the back faces you, from the first edge-on moment to the second. */
 @keyframes card-back { 0%, 36.5% { visibility: visible; } 36.6%, 61.5% { visibility: hidden; } 61.6%, to { visibility: visible; } }
@@ -642,8 +708,9 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
 }
 @media (prefers-reduced-motion: reduce) {
   .bar span, .unit-bar span, .opt { transition: none; }
-  .bubble, .spark, .unlock-fx, .unlock-fx .lock-shackle, .row.is-flipping, .row.is-flipping > * { animation: none; }
+  .bubble, .spark, .unlock-fx, .unlock-fx .lock-shackle, .row.is-flipping, .row.is-flipping > :not(.slab) { animation: none; }
   .unit-sq.is-completing .star-fill, .unit-sq.is-popping .star, .course-card.is-shining::after, .row.is-shining::after { animation: none; }
+  .fx-ball, .fx-ball::before, .fx-ball::after, .chev.is-popping svg, .course-card.is-landing, .row.is-landing { animation: none; }
 }
 </style>
 
@@ -852,6 +919,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   var ORDER_LABEL = { sequential: 'In order', random: 'Random' };
   var DOT = ' \u00b7 ';
   var DASH = '\u2014';
+  var CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 12.5l4.2 4.2L18.5 8" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var CHEV_SVG = '<svg viewBox="0 0 24 24"><path d="M9 4.5 16.5 12 9 19.5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var STAR_PATH = 'M12 2.7 14.53 9.22 21.51 9.61 16.09 14.03 17.88 20.79 12 17 6.12 20.79 7.91 14.03 2.49 9.61 9.47 9.22Z';
   var STAR_SVG = '<svg class="star" viewBox="0 0 24 24" aria-hidden="true"><path class="star-base" filter="url(#recess)" d="' + STAR_PATH + '"/><path class="star-fill" d="' + STAR_PATH + '"/></svg>';
@@ -1470,8 +1538,14 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       var total = course.flat.length;
       var done = perfectCount(course.flat);
       card.querySelector('.course-sub').textContent = course.sections.length + ' sections' + DOT + total + ' units';
-      setFill(card.querySelector('.bar span'), total ? done / total : 0);
-      card.classList.toggle('is-done', total > 0 && done === total);
+      var complete = total > 0 && done === total;
+      // A course just completed starts its finale from how it looked a moment ago: one unit short, with its arrow.
+      var finale = complete && !!celebrate && celebrate.course === c && !reduceMotion();
+      setFill(card.querySelector('.bar span'), total ? (finale ? done - 1 : done) / total : 0);
+      card.classList.toggle('is-done', complete);
+      card.classList.toggle('is-finale', finale);
+      card.classList.toggle('is-completing', finale);
+      setDisc(card.querySelector('.chev'), complete && !finale);
       card.querySelector('.bar').setAttribute('aria-label', done + ' of ' + total + ' units completed');
     });
   }
@@ -1515,7 +1589,10 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     course.sections.forEach(function (sec, i) {
       var perfect = perfectCount(sec.units);
       var locked = !isUnlocked(sec.units[0]);
-      var row = el('button', 'row section-row' + (locked ? ' is-locked' : perfect === sec.units.length ? ' is-done' : ''));
+      var complete = !locked && perfect === sec.units.length;
+      // A section just completed starts its finale from how it looked a moment ago: one unit short, with its arrow.
+      var finale = complete && !!celebrate && celebrate.section === sec.key && !reduceMotion();
+      var row = el('button', 'row section-row' + (locked ? ' is-locked' : complete ? ' is-done' : '') + (finale ? ' is-finale is-completing' : ''));
       row.type = 'button';
       if (nameOf(sec.key)) {
         row.classList.add('has-label');
@@ -1524,7 +1601,8 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       } else {
         row.appendChild(el('span', 'row-title', 'Section ' + sec.n));
       }
-      if (!locked) row.appendChild(barEl(sec.units.length ? perfect / sec.units.length : 0, perfect + ' of ' + sec.units.length + ' units completed'));
+      // A completed section has no bar; its disc shows the check instead.
+      if (!locked && (!complete || finale)) row.appendChild(barEl((finale ? perfect - 1 : perfect) / sec.units.length, perfect + ' of ' + sec.units.length + ' units completed'));
       var side = el('span', 'row-side');
       if (locked) {
         var lock = el('span', 'lock');
@@ -1532,7 +1610,9 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
         lock.appendChild(el('span', 'sr-only', 'Locked'));
         side.appendChild(lock);
       } else {
-        side.appendChild(chevEl());
+        var disc = el('span');
+        setDisc(disc, complete && !finale);
+        side.appendChild(disc);
       }
       row.appendChild(side);
       row.addEventListener('click', function () { push({ v: 'units', c: course.key, s: i }); });
@@ -1560,12 +1640,19 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     return side;
   }
 
-  // The arrow on a card, in its shaded disc.
-  function chevEl() {
-    var chev = el('span', 'chev');
-    chev.setAttribute('aria-hidden', 'true');
-    chev.innerHTML = CHEV_SVG;
-    return chev;
+  // A section's or course's disc: the arrow in its shaded disc, or once completed a lime disc with a check, read as "Completed".
+  function setDisc(disc, check) {
+    disc.className = 'chev' + (check ? ' is-check' : '');
+    disc.innerHTML = check ? CHECK_SVG : CHEV_SVG;
+    if (check) {
+      disc.removeAttribute('aria-hidden');
+      disc.setAttribute('role', 'img');
+      disc.setAttribute('aria-label', 'Completed');
+    } else {
+      disc.setAttribute('aria-hidden', 'true');
+      disc.removeAttribute('role');
+      disc.removeAttribute('aria-label');
+    }
   }
 
   function renderUnits(course, sec) {
@@ -1841,10 +1928,28 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     row.classList.add('is-unlocking');
     row.querySelector('.row-side').appendChild(lock);
     setTimeout(function () { sparks(lock, [cssVar('--course'), cssVar('--good')]); }, delay + 220);
-    setTimeout(function () { row.classList.add('is-flipping'); }, delay + 500);
+    var slab = slabEl();
+    setTimeout(function () {
+      row.appendChild(slab);
+      row.classList.add('is-flipping');
+    }, delay + 500);
     // Halfway round, while its plain back faces you, its usual contents replace the grey ones, ready for the second edge.
     setTimeout(function () { lock.remove(); row.classList.remove('is-unlocking'); }, delay + 1112);
-    setTimeout(function () { row.classList.remove('is-flipping'); }, delay + 1750);
+    setTimeout(function () {
+      row.classList.remove('is-flipping');
+      slab.remove();
+    }, delay + 1750);
+  }
+
+  // The card's edge as real thickness while it turns in the air (see .slab): six layers behind the face, the deepest being
+  // its back, and one behind them all for its soft shadow.
+  function slabEl() {
+    var slab = el('span', 'slab');
+    slab.setAttribute('aria-hidden', 'true');
+    slab.innerHTML = '<span class="slab-shade" style="--k:7"></span>' + [6, 5, 4, 3, 2, 1].map(function (k) {
+      return '<span' + (k === 6 ? ' class="slab-back"' : '') + ' style="--k:' + k + '"></span>';
+    }).join('');
+    return slab;
   }
 
   // The unit just completed: its star fills out from the middle and pops with sparks, then a shine sweeps across the card
@@ -1887,17 +1992,104 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     setTimeout(function () { card.classList.remove('is-completing', 'is-shining'); }, delay + 900);
   }
 
+  // A section or course just completed: its bar fills, then becomes a lime ball the size of the arrow disc, gathered to the
+  // middle. The ball squashes down as the card presses with it, then springs up and over into the disc as the card lets go;
+  // the disc turns into the check, and the card presses as it lands. Then the shine and gloss; then the card gives up the
+  // bar's space, and everything below glides up with it.
+  // Returns the time at which the next moment (an unlock) can start.
+  function finaleFx(card, delay) {
+    var bar = card && card.querySelector('.bar');
+    var disc = card && card.querySelector('.chev');
+    if (!bar || !disc || reduceMotion()) return delay;
+    var fill = bar.firstElementChild;
+    var ball = null;
+    setTimeout(function () {
+      fill.style.transition = 'transform .42s cubic-bezier(.25, 1, .5, 1)';
+      setFill(fill, 1);
+    }, delay);
+    // The full bar hands over to a lime copy of itself, so no empty track is left behind as the copy gathers.
+    setTimeout(function () {
+      var cardBox = card.getBoundingClientRect();
+      var barBox = bar.getBoundingClientRect();
+      ball = el('span', 'fx-ball');
+      ball.style.left = (barBox.left - cardBox.left + barBox.width / 2) + 'px';
+      ball.style.top = (barBox.top - cardBox.top + barBox.height / 2) + 'px';
+      ball.style.setProperty('--w', barBox.width + 'px');
+      ball.style.setProperty('--d', disc.getBoundingClientRect().width + 'px');
+      card.appendChild(ball);
+      bar.style.visibility = 'hidden';
+    }, delay + 570);
+    setTimeout(function () {
+      if (ball) ball.classList.add('is-pressing');
+      card.classList.add('is-charging');
+    }, delay + 990);
+    // Up and over into the disc: un-squashing into a stretch as it launches, round again as it lands. The arc depends on
+    // where the bar and disc sit on this card, so it is built here rather than in the style sheet.
+    setTimeout(function () {
+      card.classList.remove('is-charging');
+      if (!ball) return;
+      var cardBox = card.getBoundingClientRect();
+      var discBox = disc.getBoundingClientRect();
+      var dx = discBox.left - cardBox.left + discBox.width / 2 - parseFloat(ball.style.left);
+      var dy = discBox.top - cardBox.top + discBox.height / 2 - parseFloat(ball.style.top);
+      var lift = 2 * (Math.min(0, dy) - 30) - dy / 2;
+      var squash = discBox.width / 8;
+      var frames = [];
+      for (var i = 0; i <= 16; i++) {
+        var t = i / 16;
+        var launch = Math.min(1, t / 0.15);
+        var land = Math.max(0, (t - 0.85) / 0.15);
+        var sx = land ? 0.92 + 0.08 * land : 1.25 - 0.33 * launch;
+        var sy = land ? 1.1 - 0.1 * land : 0.75 + 0.35 * launch;
+        var y = 2 * (1 - t) * t * lift + t * t * dy + squash * (1 - t);
+        frames.push({ transform: 'translate(' + (dx * t).toFixed(1) + 'px, ' + y.toFixed(1) + 'px) scale(' + sx.toFixed(2) + ', ' + sy.toFixed(2) + ')' });
+      }
+      // The pressed style stays on underneath (removing it would restart the gather); this flight overrides its transform.
+      ball.animate(frames, { duration: 560, easing: 'linear', fill: 'forwards' });
+    }, delay + 1290);
+    setTimeout(function () {
+      if (ball) ball.remove();
+      setDisc(disc, true);
+      disc.classList.add('is-popping');
+      card.classList.add('is-landing');
+    }, delay + 1850);
+    setTimeout(function () {
+      card.classList.remove('is-landing');
+      disc.classList.remove('is-popping');
+    }, delay + 2350);
+    shineFx(card, delay + 2370);
+    // Once the shine has passed, the card shrinks to its height without the bar, and the cards below move up with it.
+    setTimeout(function () {
+      var before = card.offsetHeight;
+      bar.style.display = 'none';
+      var after = card.offsetHeight;
+      bar.style.display = '';
+      card.style.height = before + 'px';
+      void card.offsetHeight;
+      card.style.transition = 'height .32s cubic-bezier(.33, 1, .68, 1)';
+      card.style.height = after + 'px';
+    }, delay + 3320);
+    setTimeout(function () {
+      card.classList.remove('is-finale');
+      if (!card.classList.contains('course-card')) bar.remove();
+      bar.style.visibility = '';
+      fill.style.transition = '';
+      card.style.height = '';
+      card.style.transition = '';
+    }, delay + 3660);
+    return delay + 3710;
+  }
+
   function sectionsFx() {
     if (!celebrate) return;
     var course = courses[top().c];
     var rows = document.querySelectorAll('#sections-list .row');
-    // A completed section shines first; the section it unlocked follows once the shine has passed.
+    // A completed section plays its finale first; the section it unlocked follows once that is over.
     var unlockAt = 200;
     course.sections.forEach(function (sec, i) {
       if (sec.key !== celebrate.section) return;
       celebrate.section = null;
-      shineFx(rows[i], 200);
-      unlockAt = 1100;
+      unlockAt = finaleFx(rows[i], 200);
     });
     celebrate.unlocked = celebrate.unlocked.filter(function (key) {
       var u = unitByKey[key];
@@ -1909,7 +2101,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
 
   function homeFx() {
     if (!celebrate || !celebrate.course) return;
-    shineFx($('course-' + celebrate.course), 200);
+    finaleFx($('course-' + celebrate.course), 200);
     celebrate.course = null;
   }
 
