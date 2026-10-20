@@ -183,7 +183,19 @@ button { font: inherit; color: inherit; }
 
 /* Every progress bar is 10 px thick. */
 .bar { display: block; height: 10px; border-radius: 5px; background: var(--seg-off); overflow: hidden; }
-.bar span { display: block; height: 100%; border-radius: inherit; background: var(--course-line); transform: translateX(-100%); transition: transform .25s cubic-bezier(.25, 1, .5, 1); }
+.bar span { display: block; height: 100%; border-radius: inherit; background: var(--course-line); }
+/* A bar's fill is sized by its width, so both of its ends are its own rounded ends, with the shaded underside and the shine
+   (below) curving and stopping the same way at each. (A full-width strip slid in from the left avoided relayout, but hid its
+   left end past the bar's edge, which cut the shading off straight.) setFill sets --fill (the fraction filled) and --any
+   (1 once there is any progress). On section and course cards (--dot) any progress shows at least a circle of fill the bar's
+   height, until real progress is wider; question bars have no minimum. Both are registered so they animate together. */
+@property --fill { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --any { syntax: '<number>'; inherits: true; initial-value: 0; }
+.bar span, .unit-bar span {
+  width: max(var(--any) * var(--dot, 0px), var(--fill) * 100%);
+  transition: --fill .25s cubic-bezier(.25, 1, .5, 1), --any .25s cubic-bezier(.25, 1, .5, 1);
+}
+.course-card .bar span, .row .bar span { --dot: 10px; }
 
 /* Courses (home) */
 .courses { display: grid; gap: 18px; }
@@ -448,6 +460,9 @@ button { font: inherit; color: inherit; }
 .chev.is-check svg { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .45)); }
 .chev.is-popping svg { animation: key-pop .36s cubic-bezier(.22, 1, .36, 1); }
 .course-card.is-done:not(.is-finale) .bar { display: none; }
+/* A section or course with no unit completed yet shows no bar either, and its card is shorter. The empty bar stays only for
+   screen readers ("0 of 6 units completed"). Its first completed unit grows the card to make room, then the bar fills (growFx). */
+.course-card.is-unstarted .bar, .row.is-unstarted .bar { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
 /* Its finale (finaleFx): the full bar gathers into a lime ball the size of the arrow disc, which squashes down as the card
    presses with it, then springs up and over into the disc, turning it into the check; the card presses again as it lands. */
 .fx-ball {
@@ -616,7 +631,7 @@ button { font: inherit; color: inherit; }
 .progress-text strong { color: var(--ink); }
 
 .unit-bar { height: 10px; border-radius: 5px; background: var(--course-shade); overflow: hidden; }
-.unit-bar span { display: block; height: 100%; border-radius: 5px; background: var(--lime); transform: translateX(-100%); transition: transform .25s cubic-bezier(.25, 1, .5, 1); }
+.unit-bar span { display: block; height: 100%; border-radius: 5px; background: var(--lime); }
 .phase-label { margin: -8px 0 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step--1); text-transform: uppercase; letter-spacing: .1em; color: var(--course-line); }
 
 .qtext {
@@ -1143,9 +1158,10 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     return e;
   }
 
-  // A bar's fill is a full-width strip slid in from the left, so filling it animates without relayout.
+  // A bar's fill (see .bar span): the fraction filled, and whether there is any progress, for the cards' minimum.
   function setFill(span, fraction) {
-    span.style.transform = 'translateX(' + (fraction * 100 - 100) + '%)';
+    span.style.setProperty('--fill', fraction);
+    span.style.setProperty('--any', fraction > 0 ? 1 : 0);
   }
 
   function barEl(fraction, label) {
@@ -1578,7 +1594,10 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       var complete = total > 0 && done === total;
       // A course just completed starts its finale from how it looked a moment ago: one unit short, with its arrow.
       var finale = complete && !!celebrate && celebrate.course === c && !reduceMotion();
-      setFill(card.querySelector('.bar span'), total ? (finale ? done - 1 : done) / total : 0);
+      // A course just started shows as it was a moment ago, with no bar, until its card grows one (homeFx).
+      var growing = !complete && !!celebrate && celebrate.courseStarted === c && !reduceMotion();
+      setFill(card.querySelector('.bar span'), total && !growing ? (finale ? done - 1 : done) / total : 0);
+      card.classList.toggle('is-unstarted', done === 0 || growing);
       card.classList.toggle('is-done', complete);
       card.classList.toggle('is-finale', finale);
       card.classList.toggle('is-completing', finale);
@@ -1630,7 +1649,10 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       var complete = !locked && perfect === sec.units.length;
       // A section just completed starts its finale from how it looked a moment ago: one unit short, with its arrow.
       var finale = complete && !!celebrate && celebrate.section === sec.key && !reduceMotion();
-      var row = el('button', 'row section-row' + (locked ? ' is-locked' : complete ? ' is-done' : '') + (finale ? ' is-finale is-completing' : ''));
+      // Likewise a section just started, until its card grows a bar (sectionsFx).
+      var growing = !locked && !complete && !!celebrate && celebrate.sectionStarted === sec.key && !reduceMotion();
+      var row = el('button', 'row section-row' + (locked ? ' is-locked' : complete ? ' is-done' : '') + (finale ? ' is-finale is-completing' : '')
+        + (!locked && (perfect === 0 || growing) ? ' is-unstarted' : ''));
       row.type = 'button';
       if (nameOf(sec.key)) {
         row.classList.add('has-label');
@@ -1640,7 +1662,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
         row.appendChild(el('span', 'row-title', 'Section ' + sec.n));
       }
       // A completed section has no bar; its disc shows the check instead.
-      if (!locked && (!complete || finale)) row.appendChild(barEl((finale ? perfect - 1 : perfect) / sec.units.length, perfect + ' of ' + sec.units.length + ' units completed'));
+      if (!locked && (!complete || finale)) row.appendChild(barEl(growing ? 0 : (finale ? perfect - 1 : perfect) / sec.units.length, perfect + ' of ' + sec.units.length + ' units completed'));
       var side = el('span', 'row-side');
       if (locked) {
         var lock = el('span', 'lock');
@@ -1987,6 +2009,8 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     var lockedBefore = u.course.flat.filter(function (x) { return !isUnlocked(x); });
     var sectionDoneBefore = u.section.units.every(isPerfect);
     var courseDoneBefore = u.course.flat.every(isPerfect);
+    var sectionStartedBefore = u.section.units.some(isPerfect);
+    var courseStartedBefore = u.course.flat.some(isPerfect);
     if (!prev || score > prev.best) ust.scores[u.key] = { best: score, size: u.ids.length, fp: u.fp };
     ust.attempt = null;
     saveUnits();
@@ -1994,6 +2018,8 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       unit: !wasPerfect && isPerfect(u) ? u.key : null,
       section: !sectionDoneBefore && u.section.units.every(isPerfect) ? u.section.key : null,
       course: !courseDoneBefore && u.course.flat.every(isPerfect) ? u.course.key : null,
+      sectionStarted: !sectionStartedBefore && isPerfect(u) ? u.section.key : null,
+      courseStarted: !courseStartedBefore && isPerfect(u) ? u.course.key : null,
       unlocked: lockedBefore.filter(isUnlocked).map(function (x) { return x.key; })
     };
     scrollToUnit = u.key;
@@ -2043,7 +2069,8 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     }
   }
 
-  // Set when a unit ends: the unit newly completed, the section and course it completed, and the units it unlocked.
+  // Set when a unit ends: the unit newly completed, the section and course it completed or started (their first completed
+  // unit), and the units it unlocked.
   // The unit list it returns to plays the unit's moment; a completed or unlocked section waits for the Sections screen,
   // and a completed course for the Courses screen.
   var celebrate = null;
@@ -2158,7 +2185,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     var fill = bar.firstElementChild;
     var ball = null;
     setTimeout(function () {
-      fill.style.transition = 'transform .42s cubic-bezier(.25, 1, .5, 1)';
+      fill.style.transition = '--fill .42s cubic-bezier(.25, 1, .5, 1), --any .42s cubic-bezier(.25, 1, .5, 1)';
       setFill(fill, 1);
     }, delay);
     // The full bar hands over to a lime copy of itself, so no empty track is left behind as the copy gathers.
@@ -2214,9 +2241,9 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     shineFx(card, delay + 2370);
     // Once the shine has passed, the card shrinks to its height without the bar, and the cards below move up with it.
     setTimeout(function () {
-      var before = card.offsetHeight;
+      var before = card.getBoundingClientRect().height;
       bar.style.display = 'none';
-      var after = card.offsetHeight;
+      var after = card.getBoundingClientRect().height;
       bar.style.display = '';
       card.style.height = before + 'px';
       void card.offsetHeight;
@@ -2237,6 +2264,50 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     return delay + 3710;
   }
 
+  // A section or course with its first unit completed. Its card starts to rattle, harder and harder, building suspense; it
+  // keeps rattling as it squashes up from the bottom (the cards below holding still) and while it stays squashed. Then it
+  // springs open past its new height and settles, pushing the cards below down, and the bar pops in as it opens, then fills
+  // to show that unit. The card clips the bar until it's open enough to show it. The rattle is a tilt, not a side-to-side
+  // shake, which here means a wrong answer.
+  function growFx(card, fraction, delay) {
+    var bar = card.querySelector('.bar');
+    var fill = bar.firstElementChild;
+    var SQUASH = 6, OVER = 6;
+    setTimeout(function () {
+      // Exact heights, not offsetHeight, which rounds a 113.5 px card to 114 and leaves a half-pixel snap at the end.
+      var before = card.getBoundingClientRect().height;
+      card.classList.remove('is-unstarted');
+      var after = card.getBoundingClientRect().height;
+      card.style.overflow = 'hidden';
+      // Rattling from 0 s. Squashing from 0.2 s, squashed by 0.4 s (a matching bottom margin holds the cards below still),
+      // held, still rattling, until 0.95 s; open past its height at 1.1 s, settled at 1.25 s.
+      card.animate([
+        { height: before + 'px', marginBottom: '0px' },
+        { height: before + 'px', marginBottom: '0px', offset: .16, easing: 'cubic-bezier(.33, 1, .68, 1)' },
+        { height: before - SQUASH + 'px', marginBottom: SQUASH + 'px', offset: .32 },
+        { height: before - SQUASH + 'px', marginBottom: SQUASH + 'px', offset: .76, easing: 'cubic-bezier(.22, 1, .36, 1)' },
+        { height: after + OVER + 'px', marginBottom: '0px', offset: .88, easing: 'cubic-bezier(.33, 0, .67, 1)' },
+        { height: after + 'px', marginBottom: '0px' }
+      ], 1250);
+      // Twenty swings, growing from 0.2 to 0.9 degrees, ending level as it pops.
+      var tilt = [0];
+      for (var i = 0; i < 19; i++) tilt.push((i % 2 ? 1 : -1) * (.2 + .7 * i / 18));
+      tilt.push(0);
+      card.animate(tilt.map(function (deg) { return { rotate: deg.toFixed(2) + 'deg' }; }), 950);
+      bar.animate([
+        { opacity: 0, scale: '.6' },
+        { opacity: 1, scale: '1.08', offset: .6 },
+        { opacity: 1, scale: '1' }
+      ], { duration: 300, delay: 970, easing: 'ease-out', fill: 'backwards' });
+    }, delay);
+    setTimeout(function () {
+      card.style.overflow = '';
+      fill.style.transition = '--fill .42s cubic-bezier(.25, 1, .5, 1), --any .42s cubic-bezier(.25, 1, .5, 1)';
+      setFill(fill, fraction);
+    }, delay + 1310);
+    setTimeout(function () { fill.style.transition = ''; }, delay + 1750);
+  }
+
   function sectionsFx() {
     if (!celebrate) return;
     var course = courses[top().c];
@@ -2245,11 +2316,16 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     var unlockAt = 200;
     var shown = [];
     course.sections.forEach(function (sec, i) {
+      if (sec.key === celebrate.sectionStarted && rows[i].classList.contains('is-unstarted')) {
+        growFx(rows[i], perfectCount(sec.units) / sec.units.length, 200);
+        shown.push(rows[i]);
+      }
       if (sec.key !== celebrate.section) return;
       celebrate.section = null;
       unlockAt = finaleFx(rows[i], 200);
       shown.push(rows[i]);
     });
+    celebrate.sectionStarted = null;
     celebrate.unlocked = celebrate.unlocked.filter(function (key) {
       var u = unitByKey[key];
       if (u.course !== course || u.section.units[0] !== u) return true;
@@ -2261,7 +2337,14 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   }
 
   function homeFx() {
-    if (!celebrate || !celebrate.course) return;
+    if (!celebrate) return;
+    var started = celebrate.courseStarted && $('course-' + celebrate.courseStarted);
+    if (started && started.classList.contains('is-unstarted') && perfectCount(courses[celebrate.courseStarted].flat)) {
+      growFx(started, perfectCount(courses[celebrate.courseStarted].flat) / courses[celebrate.courseStarted].flat.length, 200);
+      showFx([started]);
+    }
+    celebrate.courseStarted = null;
+    if (!celebrate.course) return;
     finaleFx($('course-' + celebrate.course), 200);
     showFx([$('course-' + celebrate.course)]);
     celebrate.course = null;
