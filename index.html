@@ -2032,8 +2032,9 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   function reduceMotion() { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
   function cssVar(name) { return getComputedStyle(document.body).getPropertyValue(name).trim(); }
 
-  // A short burst of sparks from the middle of an element, drawn in the .fx layer.
-  function sparks(target, colors) {
+  // A short burst of sparks from the middle of an element, drawn in the .fx layer, each flying 22 to 38px. With fromEdge they
+  // start at the element's edge instead: a solid shape (the star) would otherwise hide most of their flight.
+  function sparks(target, colors, fromEdge) {
     if (reduceMotion()) return;
     var box = target.getBoundingClientRect();
     // Skip a burst if earlier ones are still around (fast keyboard answering, or a throttled background tab).
@@ -2042,9 +2043,10 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     for (var i = 0; i < 10; i++) {
       var angle = (i / 10 + Math.random() * 0.06) * 2 * Math.PI;
       var dist = 22 + Math.random() * 16;
+      var start = fromEdge ? box.width / 2 : 0;
       var s = el('span', 'spark');
-      s.style.left = (box.left + box.width / 2) + 'px';
-      s.style.top = (box.top + box.height / 2) + 'px';
+      s.style.left = (box.left + box.width / 2 + Math.cos(angle) * start) + 'px';
+      s.style.top = (box.top + box.height / 2 + Math.sin(angle) * start) + 'px';
       s.style.background = colors[i % colors.length];
       s.style.setProperty('--x', Math.round(Math.cos(angle) * dist) + 'px');
       s.style.setProperty('--y', Math.round(Math.sin(angle) * dist) + 'px');
@@ -2118,7 +2120,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     row.classList.add('is-completing');
     setTimeout(function () {
       row.classList.add('is-popping');
-      sparks(star, [cssVar('--lime'), cssVar('--off-white')]);
+      sparks(star, [cssVar('--lime'), cssVar('--off-white')], true);
     }, delay + 350);
     setTimeout(function () { row.classList.add('is-shining'); }, delay + 700);
     setTimeout(function () { row.classList.remove('is-completing', 'is-popping', 'is-shining'); }, delay + 1350);
