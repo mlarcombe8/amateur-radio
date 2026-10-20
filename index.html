@@ -307,7 +307,7 @@ button { font: inherit; color: inherit; }
 .unit-sq .row-side { grid-column: auto; grid-row: auto; display: grid; place-items: center; }
 /* The current unit (the one to do next) calls to be tapped: every --call-loop (read by startCalling) it presses down like a
    tapped button and springs back, and as it bottoms out a ring the shape of the card leaves its base, spreading and fading.
-   The first ring leaves 2s after the list opens. The press and ring run at the same speed at any loop length; only the
+   The first ring leaves 1s after the list opens. The press and ring run at the same speed at any loop length; only the
    pause between presses changes. A newly unlocked unit sends a bigger first ring as it lands from its flip, and the loop
    carries on from there. No call starts while the card is pressed for real or its pop-up is open, and any ring under way is
    hidden. A tap on any unit sends the same ring from its base, only quicker, as a tap is quicker than the loop. The rings
@@ -1764,12 +1764,12 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     });
   });
 
-  // The current unit calls to be tapped (see .is-calling): a press and a ring every --call-loop, the first ring leaving 2s
+  // The current unit calls to be tapped (see .is-calling): a press and a ring every --call-loop, the first ring leaving 1s
   // after the list opens, whether from Sections or back from a unit. After an unlock on this list, the newly unlocked unit's
   // landing press sends a big ring instead (at landAt), and the loop carries on from that ring.
   var callTimer = 0;
   var CALL_DOWN = 120; // ms from the start of a press to the card bottoming out, when its ring leaves (see call-press)
-  var CALL_WAIT = 2000; // ms from the list opening to its first ring
+  var CALL_WAIT = 1000; // ms from the list opening to its first ring
   function callLoop() {
     var v = getComputedStyle(document.documentElement).getPropertyValue('--call-loop').trim();
     var ms = parseFloat(v) * (/ms$/.test(v) ? 1 : 1000);
