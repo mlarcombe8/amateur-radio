@@ -319,15 +319,15 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
    The first ring leaves 1s after the list opens. The press and ring run at the same speed at any loop length; only the
    pause between presses changes. A newly unlocked unit sends a bigger first ring as it lands from its flip, and the loop
    carries on from there. No call starts while the card is pressed for real or its pop-up is open, and any ring under way is
-   hidden. A tap on any unit sends the same ring from its base, only quicker, as a tap is quicker than the loop. The rings
-   are layers first in the list, so they sit behind every card, placed over the card's base (its own shape, 6px lower) by
-   placeRing. */
+   hidden. A tap on an unlocked unit sends the same ring from its base, only quicker, as a tap is quicker than the loop.
+   The rings are layers first in the list, so they sit behind every card, placed over the card's base (its own shape, 6px
+   lower) by placeRing. */
 :root { --call-loop: 2s; }
 .waves, .ripple { position: absolute; border-radius: 18px; pointer-events: none; }
 .waves > span, .ripple::before {
   content: "";
   position: absolute; inset: 0;
-  border: 2.5px solid var(--ring, var(--course));
+  border: 2.5px solid var(--course);
   border-radius: inherit;
   opacity: 0;
 }
@@ -532,67 +532,95 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
    shows the unlocked card. It falls faster and faster, lands with another tap-like press that absorbs the impact, and rises
    back to normal. Each press is the cards' :active state, down 4px onto a 2px edge with no squash and no colour change.
    One 1.25s timeline: launch at 24%, 90 degrees at 36.5%, 270 degrees at 61.5%, landing at 74%. */
-.row.is-flipping {
+/* The flip runs on these properties, on three timelines: height (flip-jump), turn (flip-turn), and the edge's depth and
+   colour (flip-face). The card and its depth layer underneath (.flip-depth) both run them, so they move as one. */
+@property --jump { syntax: '<length>'; inherits: true; initial-value: 0px; }
+@property --lift { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --turn { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
+@property --thick { syntax: '<number>'; inherits: true; initial-value: 6; }
+/* Also while pressed for real, so a tap mid-flip can't stop the turn. */
+.row.is-flipping, .row.is-flipping:active:not(:disabled) {
   position: relative;
   z-index: 2;
   transition: none;
-  transform-style: preserve-3d;
   overflow: visible;
   box-shadow: none;
-  animation: card-jump 1.25s forwards, card-turn 1.25s forwards, card-face 1.25s forwards, card-side 1.25s forwards;
+  /* While the back is towards you (cos < 0), the card is drawn where the back really is: --thick x --tilt further down
+     (see .flip-depth). */
+  translate: 0 calc(var(--jump) + clamp(0, -1000 * cos(var(--turn)), 1) * var(--thick) * var(--tilt) * 1px);
+  transform: perspective(700px) rotateX(var(--turn));
+  animation: flip-jump 1.25s forwards, flip-turn 1.25s forwards, flip-face 1.25s forwards, flip-color 1.25s forwards;
 }
-.row.is-flipping > :not(.slab) { animation: card-back 1.25s forwards; }
-/* In the air the card keeps its thickness: instead of the painted edge, its edge is a real slab (slabEl) of six layers behind
-   the face, each a step deeper and a step lower, so at rest it lines up exactly with the 6px edge and in the air it shows as a
-   solid edge at every angle, even edge-on. --thick is the edge's depth in px: 6 in the air, 2 while the card is pressed. Each
-   layer is scaled up to cancel the turn's perspective, so the slab matches the painted edge before and after the jump. The
-   deepest layer is the card's plain grey back; a layer behind them all carries the card's soft shadow. */
-@property --thick { syntax: '<number>'; inherits: true; initial-value: 6; }
-/* --side is 1 while the face is towards you and -1 while the back is (card-side), switching at the edge-on moments, when the
-   switch can't be seen. While the back is towards you, its layers are nearer than the face, so their perspective scale is
-   reversed; the shadow layer moves to the far side and turns over, so it stays behind the card and its shadow still falls
-   downwards; and the 1px edge-coloured line that finishes the edge moves from the back to the face, which is then the far
-   side. So the back shows just like the front at rest: the edge below it, nothing above (the owner's request, 2026-10-20). */
-@property --side { syntax: '<number>'; inherits: true; initial-value: 1; }
-.slab, .slab > span { position: absolute; inset: 0; border-radius: inherit; transform-style: preserve-3d; pointer-events: none; }
-.slab > span {
-  --d: calc(var(--thick) * var(--k) / 6);
-  --fix: calc(1 + var(--side) * var(--d) / 700);
+.row.is-flipping, .flip-depth { --tilt: calc(sin(var(--turn)) + cos(var(--turn))); }
+/* Shade: just past each edge-on moment, the side towards you faces away from the light above, as the edge shows over the
+   top, so it's dimmed, as if in shadow; it's half dimmed as it turns back into the light (135 and 315 degrees), and normal
+   after that (the owner's request, 2026-10-20). Meanwhile that edge faces the light, so it's lit as much (about the card's
+   own colour): dark on dark, it couldn't be seen (the owner's report, same day). --facing is 1 while the face is towards
+   you and -1 while the back is; the switch into shadow falls on the edge-on moment, when the card is only a line. */
+.row.is-flipping, .flip-depth {
+  --facing: clamp(-1, calc(1000 * cos(var(--turn))), 1);
+  --shade: clamp(0, calc(.5 - 3 * var(--facing) * var(--tilt)), 1);
+}
+.row.is-flipping { filter: brightness(calc(1 - .4 * var(--shade))); }
+.flip-depth > .flip-edge { filter: brightness(calc(1 + .67 * var(--shade))); }
+.row.is-flipping > * { animation: card-back 1.25s forwards; }
+/* In the air the card keeps its depth, drawn as at rest. It's a slab --thick px deep (6 in the air, 2 while pressed): copies
+   of the card's outline, turning exactly as the card does, from its face (k 0) to its back (k 6). Each copy sits where that
+   depth of a real slab would show, seen as at rest from a little above, which is what shows a resting card's edge below
+   it: k x --tilt px down the screen, where --tilt is sin + cos of the turn. So the edge turns with the card: below it at
+   rest, over the top just after each edge-on moment, shrinking away, and below again (at 135 and 315 degrees it's edge-on
+   to you and shows none), never jumping. Whichever side faces you, the card is drawn on top (its face, or its back where
+   the back really is), with the copies behind it. (The owner saw an edge always drawn below the card reverse direction just
+   after edge-on, 2026-10-20.) Its shadow stays in one spot under the card's
+   place, as if lit from straight above with the card jumping straight up towards the light (the owner's picture,
+   2026-10-20): it doesn't move, turn or narrow, but grows a little, softens and fades as the card rises. Its core fills in
+   only in the air, so no hole shows under the card then, and nothing dark shows above it in the presses. At rest both
+   match the painted edge and shadow exactly. (Before, the edge was 3D layers inside the card and the shadow rode with it:
+   perspective thickened the edge mid-turn and showed it above the card at times, and the shadow flew and turned with the
+   card; the owner's report, 2026-10-20.) */
+.flip-depth {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  animation: flip-jump 1.25s forwards, flip-turn 1.25s forwards, flip-face 1.25s forwards;
+}
+.flip-depth > span { position: absolute; inset: 0; border-radius: inherit; }
+.flip-depth > .flip-edge {
   background: var(--slab-color);
-  transform: translate3d(0, calc(var(--d) * var(--fix) * 1px), calc(var(--d) * -1px)) scale(var(--fix));
+  transform: translateY(calc(var(--jump) + var(--thick) * var(--k) / 6 * var(--tilt) * 1px)) perspective(700px) rotateX(var(--turn));
 }
-.slab > .slab-back { background: var(--surface); box-shadow: inset 0 calc(max(var(--side), 0) * -1px) 0 var(--slab-color); }
-.slab > .slab-shade { background: none; box-shadow: var(--shadow); transform: translate3d(0, 0, calc(var(--d) * var(--side) * -1px)) rotateX(calc((1 - var(--side)) * 90deg)) scale(calc(1 + var(--d) / 700)); }
-/* Height: launched fast and slowing to the top, then falling faster to the landing. */
-@keyframes card-jump {
-  0% { translate: 0 0; animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
-  8%, 24% { translate: 0 4px; animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
-  48% { translate: 0 -48px; animation-timing-function: cubic-bezier(.33, 0, .67, .33); }
-  74% { translate: 0 0; animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
-  79%, 86% { translate: 0 4px; animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
-  to { translate: 0 0; }
+.flip-depth > .flip-shadow {
+  background: rgba(0, 0, 0, calc(.3 * var(--lift)));
+  box-shadow: var(--shadow);
+  opacity: calc(1 - .5 * var(--lift));
+  filter: blur(calc(var(--lift) * 8px));
+  transform: scale(calc(1 + .06 * var(--lift)));
+}
+/* Height: launched fast and slowing to the top, then falling faster to the landing. --lift is the height as a share of the
+   jump, for the shadow. */
+@keyframes flip-jump {
+  0% { --jump: 0px; --lift: 0; animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  8%, 24% { --jump: 4px; --lift: 0; animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  48% { --jump: -48px; --lift: 1; animation-timing-function: cubic-bezier(.33, 0, .67, .33); }
+  74% { --jump: 0px; --lift: 0; animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  79%, 86% { --jump: 4px; --lift: 0; animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  to { --jump: 0px; --lift: 0; }
 }
 /* Turn: steady through the air. */
-@keyframes card-turn {
-  0%, 24% { transform: perspective(700px) rotateX(0); animation-timing-function: linear; }
-  74%, to { transform: perspective(700px) rotateX(360deg); }
+@keyframes flip-turn { 0%, 24% { --turn: 0deg; animation-timing-function: linear; } 74%, to { --turn: 360deg; } }
+/* Edge: each press only shrinks it; like a tap, it changes no colour (the owner's choices, 2026-10-19 and 2026-10-20). It
+   takes the course colour's shade with the card, at the second edge-on moment. */
+@keyframes flip-face {
+  0% { --thick: 6; --slab-color: var(--card-edge); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  8%, 24% { --thick: 2; --slab-color: var(--card-edge); animation-timing-function: linear; }
+  25%, 61.5% { --thick: 6; --slab-color: var(--card-edge); }
+  61.6%, 74% { --thick: 6; --slab-color: var(--course-shade); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  79%, 86% { --thick: 2; --slab-color: var(--course-shade); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  to { --thick: 6; --slab-color: var(--course-shade); }
 }
-/* Colour and edge: plain grey until the second edge-on moment, including through the charge-up press, then the course colour.
-   Each press only shrinks the edge; like a tap, it changes no colour (the owner's choices, 2026-10-19 and 2026-10-20). */
-@keyframes card-face {
-  0% { background-color: var(--surface); --thick: 6; --slab-color: var(--card-edge); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
-  8%, 24% { background-color: var(--surface); --thick: 2; --slab-color: var(--card-edge); animation-timing-function: linear; }
-  25%, 61.5% { background-color: var(--surface); --thick: 6; --slab-color: var(--card-edge); }
-  61.6%, 74% { background-color: var(--course); --thick: 6; --slab-color: var(--course-shade); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
-  79%, 86% { background-color: var(--course); --thick: 2; --slab-color: var(--course-shade); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
-  to { background-color: var(--course); --thick: 6; --slab-color: var(--course-shade); }
-}
-/* Which side faces you (see --side), and the face's line along its far edge while the back is towards you. */
-@keyframes card-side {
-  0%, 36.5% { --side: 1; box-shadow: none; }
-  36.6%, 61.5% { --side: -1; box-shadow: inset 0 1px 0 var(--slab-color); }
-  61.6%, to { --side: 1; box-shadow: none; }
-}
+/* Colour: plain grey until the second edge-on moment, including through the charge-up press, then the course colour. The
+   card's back is the card itself seen from behind, so it is grey too. */
+@keyframes flip-color { 0%, 61.5% { background-color: var(--surface); } 61.6%, to { background-color: var(--course); } }
 /* Contents: hidden while the back faces you, from the first edge-on moment to the second. */
 @keyframes card-back { 0%, 36.5% { visibility: visible; } 36.6%, 61.5% { visibility: hidden; } 61.6%, to { visibility: visible; } }
 
@@ -782,7 +810,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
 }
 @media (prefers-reduced-motion: reduce) {
   .bar span, .unit-bar span, .opt { transition: none; }
-  .bubble, .spark, .unlock-fx, .unlock-fx .lock-shackle, .row.is-flipping, .row.is-flipping > :not(.slab) { animation: none; }
+  .bubble, .spark, .unlock-fx, .unlock-fx .lock-shackle, .row.is-flipping, .row.is-flipping > *, .flip-depth { animation: none; }
   .unit-sq.is-completing .star-fill, .unit-sq.is-popping .star, .course-card.is-shining::after, .row.is-shining::after { animation: none; }
   .fx-ball, .fx-ball::before, .fx-ball::after, .chev.is-popping svg, .course-card.is-landing, .row.is-landing { animation: none; }
   .unit-sq.is-calling, .waves > span, .ripple::before { animation: none; }
@@ -1837,14 +1865,13 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     }, landAt);
   }
 
-  // A tap on any unit sends a single ring out from its base, like the calling ring but quicker: the course colour, or grey
-  // from a locked unit.
+  // A tap on an unlocked unit sends a single ring out from its base, like the calling ring but quicker. A locked unit sends
+  // none (the owner's choice, 2026-10-20): its pop-up says why it's locked.
   function rippleFx(row) {
-    if (reduceMotion()) return;
+    if (reduceMotion() || row.classList.contains('is-locked')) return;
     var ripple = el('span', 'ripple');
     ripple.setAttribute('aria-hidden', 'true');
     ripple.dataset.unit = row.dataset.unit;
-    if (row.classList.contains('is-locked')) ripple.style.setProperty('--ring', 'var(--muted)');
     placeRing(ripple, row);
     $('units-list').insertBefore(ripple, $('units-list').firstChild);
     setTimeout(function () { ripple.remove(); }, 600);
@@ -2056,9 +2083,9 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   function reduceMotion() { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
   function cssVar(name) { return getComputedStyle(document.body).getPropertyValue(name).trim(); }
 
-  // A short burst of sparks from the middle of an element, drawn in the .fx layer, each flying 22 to 38px. With fromEdge they
-  // start at the element's edge instead: a solid shape (the star, an answer's letter) would otherwise hide most of their flight.
-  function sparks(target, colors, fromEdge) {
+  // A short burst of sparks from an element (a completed star, a right answer's letter, an opening lock), drawn in the .fx
+  // layer. They start at its edge and fly 22 to 38px out: from its middle, a solid shape hid most of their flight.
+  function sparks(target, colors) {
     if (reduceMotion()) return;
     var box = target.getBoundingClientRect();
     // Skip a burst if earlier ones are still around (fast keyboard answering, or a throttled background tab).
@@ -2067,7 +2094,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     for (var i = 0; i < 10; i++) {
       var angle = (i / 10 + Math.random() * 0.06) * 2 * Math.PI;
       var dist = 22 + Math.random() * 16;
-      var start = fromEdge ? box.width / 2 : 0;
+      var start = box.width / 2;
       var s = el('span', 'spark');
       s.style.left = (box.left + box.width / 2 + Math.cos(angle) * start) + 'px';
       s.style.top = (box.top + box.height / 2 + Math.sin(angle) * start) + 'px';
@@ -2080,9 +2107,8 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     setTimeout(function () { made.forEach(function (s) { s.remove(); }); }, 700);
   }
 
-  // Check's reaction: the right answer's letter pops and sends out sparks, from its edge as the star's do (a solid badge
-  // would hide them); a wrong pick shakes once, which draws the eye up from the Check button to it. Inline animations leave
-  // the options' classes and size untouched, and go away with the card.
+  // Check's reaction: the right answer's letter pops and sends out sparks; a wrong pick shakes once, which draws the eye up
+  // from the Check button to it. Inline animations leave the options' classes and size untouched, and go away with the card.
   function answerFx(container, right) {
     if (reduceMotion()) return;
     var opt = container.querySelector(right ? '.is-correct' : '.is-wrong');
@@ -2090,7 +2116,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     if (right) {
       var key = opt.querySelector('.key');
       key.style.animation = 'key-pop .34s cubic-bezier(.22, 1, .36, 1)';
-      sparks(key, [cssVar('--good'), cssVar('--course')], true);
+      sparks(key, [cssVar('--good'), cssVar('--course')]);
     } else {
       opt.style.animation = 'opt-shake .34s cubic-bezier(.36, .07, .19, .97)';
     }
@@ -2102,8 +2128,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   // and a completed course for the Courses screen.
   var celebrate = null;
 
-  // A row that has just unlocked: its lock pops open with sparks, then the card is pressed like a button, springs up and turns
-  // a full circle (changing from grey to the course colour at the second edge-on moment), and lands with another press.
+  // A row that has just unlocked: its lock pops open with sparks, then the card flips (flipFx).
   function unlockFx(row, delay) {
     if (!row || reduceMotion()) return;
     var lock = el('span', 'lock unlock-fx');
@@ -2112,28 +2137,46 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     row.classList.add('is-unlocking');
     row.querySelector('.row-side').appendChild(lock);
     setTimeout(function () { sparks(lock, [cssVar('--course'), cssVar('--good')]); }, delay + 220);
-    var slab = slabEl();
-    setTimeout(function () {
-      row.appendChild(slab);
-      row.classList.add('is-flipping');
-    }, delay + 500);
-    // Halfway round, while its plain back faces you, its usual contents replace the grey ones, ready for the second edge.
-    setTimeout(function () { lock.remove(); row.classList.remove('is-unlocking'); }, delay + 1112);
-    setTimeout(function () {
-      row.classList.remove('is-flipping');
-      slab.remove();
-    }, delay + 1750);
+    flipFx(row, delay + 500);
   }
 
-  // The card's edge as real thickness while it turns in the air (see .slab): six layers behind the face, the deepest being
-  // its back, and one behind them all for its soft shadow.
-  function slabEl() {
-    var slab = el('span', 'slab');
-    slab.setAttribute('aria-hidden', 'true');
-    slab.innerHTML = '<span class="slab-shade" style="--k:7"></span>' + [6, 5, 4, 3, 2, 1].map(function (k) {
-      return '<span' + (k === 6 ? ' class="slab-back"' : '') + ' style="--k:' + k + '"></span>';
+  // The card is pressed like a button, springs up and turns a full circle (changing from grey to the course colour at the
+  // second edge-on moment), and lands with another press (see .row.is-flipping). It starts grey (.is-unlocking).
+  function flipFx(row, delay) {
+    var depth = null;
+    setTimeout(function () {
+      // The depth layer goes in just before the card, in the same frame, so their timelines start together.
+      depth = depthEl(row);
+      row.parentNode.insertBefore(depth, row);
+      row.classList.add('is-flipping');
+    }, delay);
+    // Halfway round, while its plain back faces you, its usual contents replace the grey ones (and the opened lock goes),
+    // ready for the second edge.
+    setTimeout(function () {
+      var lock = row.querySelector('.unlock-fx');
+      if (lock) lock.remove();
+      row.classList.remove('is-unlocking');
+    }, delay + 612);
+    setTimeout(function () {
+      row.classList.remove('is-flipping');
+      if (depth) depth.remove();
+    }, delay + 1250);
+  }
+
+  // The card's edge and ground shadow while it flips (see .flip-depth), on the card's place in the list: its shadow, then
+  // copies of its outline through its depth, back (6) to face (0).
+  function depthEl(row) {
+    var depth = el('span', 'flip-depth');
+    depth.setAttribute('aria-hidden', 'true');
+    depth.style.left = row.offsetLeft + 'px';
+    depth.style.top = row.offsetTop + 'px';
+    depth.style.width = row.offsetWidth + 'px';
+    depth.style.height = row.offsetHeight + 'px';
+    depth.style.borderRadius = getComputedStyle(row).borderRadius;
+    depth.innerHTML = '<span class="flip-shadow"></span>' + [6, 5, 4, 3, 2, 1, 0].map(function (k) {
+      return '<span class="flip-edge" style="--k:' + k + '"></span>';
     }).join('');
-    return slab;
+    return depth;
   }
 
   // The unit just completed: its star fills out from the middle and pops with sparks, then a shine sweeps across the card
@@ -2145,7 +2188,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     row.classList.add('is-completing');
     setTimeout(function () {
       row.classList.add('is-popping');
-      sparks(star, [cssVar('--lime'), cssVar('--off-white')], true);
+      sparks(star, [cssVar('--lime'), cssVar('--off-white')]);
     }, delay + 350);
     setTimeout(function () { row.classList.add('is-shining'); }, delay + 700);
     setTimeout(function () { row.classList.remove('is-completing', 'is-popping', 'is-shining'); }, delay + 1350);
@@ -2202,7 +2245,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
 
   // A section or course just completed: its bar fills, then becomes a lime ball the size of the arrow disc, gathered to the
   // middle. The ball squashes down as the card presses with it, then springs up and over into the disc as the card lets go;
-  // it squashes into the disc as it lands, the card pressing with the impact, and the disc springs back up as the check.
+  // it squashes into the disc as it lands, the card pressing with the impact, springs back round, and becomes the check.
   // Then the shine and gloss; then the card gives up the bar's space, and everything below glides up with it.
   // Returns the time at which the next moment (an unlock) can start.
   function finaleFx(card, delay) {
@@ -2255,24 +2298,34 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       }
       // The pressed style stays on underneath (removing it would restart the gather); this flight overrides its transform.
       ball.animate(frames, { duration: 560, easing: 'linear', fill: 'forwards' });
+      // In the disc: squashed by the landing, then springing back up, a touch tall, and settling round, its bottom resting on
+      // the disc's bottom all the while.
+      var sit = function (sx, sy) {
+        return 'translate(' + dx.toFixed(1) + 'px, ' + (dy + (1 - sy) * discBox.width / 2).toFixed(1) + 'px) scale(' + sx + ', ' + sy + ')';
+      };
       ball.animate([
-        { transform: 'translate(' + dx.toFixed(1) + 'px, ' + dy.toFixed(1) + 'px) scale(1, 1)' },
-        { transform: 'translate(' + dx.toFixed(1) + 'px, ' + (dy + squash).toFixed(1) + 'px) scale(1.25, .75)' }
-      ], { duration: 120, delay: 560, easing: 'cubic-bezier(.33, 1, .68, 1)', fill: 'forwards' });
+        { transform: sit(1, 1), easing: 'cubic-bezier(.33, 1, .68, 1)' },
+        { transform: sit(1.25, .75), offset: .375, easing: 'cubic-bezier(.33, 1, .68, 1)' },
+        { transform: sit(.94, 1.06), offset: .72, easing: 'cubic-bezier(.33, 0, .67, 1)' },
+        { transform: sit(1, 1) }
+      ], { duration: 320, delay: 560, fill: 'forwards' });
     }, delay + 1290);
-    // It lands, squashing, and the card presses with the impact...
-    setTimeout(function () { card.classList.add('is-landing'); }, delay + 1850);
-    // ...then the disc springs back up as the check.
+    // It lands, exactly covering the arrow disc, which goes so it can't show past the ball as it squashes; the card presses
+    // with the impact...
+    setTimeout(function () {
+      disc.style.visibility = 'hidden';
+      card.classList.add('is-landing');
+    }, delay + 1850);
+    // ...and once the ball has sprung back and settled round, it becomes the check, which pops.
     setTimeout(function () {
       if (ball) ball.remove();
       setDisc(disc, true);
+      disc.style.visibility = '';
       disc.classList.add('is-popping');
-    }, delay + 1970);
-    setTimeout(function () {
-      card.classList.remove('is-landing');
-      disc.classList.remove('is-popping');
-    }, delay + 2350);
-    shineFx(card, delay + 2370);
+    }, delay + 2170);
+    setTimeout(function () { card.classList.remove('is-landing'); }, delay + 2350);
+    setTimeout(function () { disc.classList.remove('is-popping'); }, delay + 2550);
+    shineFx(card, delay + 2570);
     // Once the shine has passed, the card shrinks to its height without the bar, and the cards below move up with it.
     setTimeout(function () {
       var before = card.getBoundingClientRect().height;
@@ -2286,7 +2339,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       // The list keeps its height, so the cards below still glide up when the page is scrolled to its end (see showFx),
       // rather than the page sliding down to fill the space. Drawing the screen again takes the space back.
       card.parentNode.style.paddingBottom = (before - after) + 'px';
-    }, delay + 3320);
+    }, delay + 3520);
     setTimeout(function () {
       card.classList.remove('is-finale');
       if (!card.classList.contains('course-card')) bar.remove();
@@ -2294,8 +2347,8 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       fill.style.transition = '';
       card.style.height = '';
       card.style.transition = '';
-    }, delay + 3660);
-    return delay + 3710;
+    }, delay + 3860);
+    return delay + 3910;
   }
 
   // A section or course with its first unit completed. Its card starts to rattle, harder and harder, building suspense; it
@@ -2380,6 +2433,20 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     showFx([$('course-' + celebrate.course)]);
     celebrate.course = null;
   }
+
+  // For the local animation demo (demo.html, which isn't published), so it can replay one moment on its own: set the moments
+  // the next screen drawn will play, or flip a card by itself. The app never calls these.
+  window.goHamDemo = {
+    courses: courses,
+    celebrate: function (moments) {
+      celebrate = { unit: null, section: null, course: null, sectionStarted: null, courseStarted: null, unlocked: [] };
+      Object.keys(moments).forEach(function (k) { celebrate[k] = moments[k]; });
+    },
+    flip: function (row) {
+      row.classList.add('is-unlocking');
+      flipFx(row, 0);
+    }
+  };
 
   // ---- Hints: each one removes a wrong answer, so the third leaves only the right one.
 
