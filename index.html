@@ -60,6 +60,13 @@
 
 [hidden] { display: none !important; }
 *, *::before, *::after { box-sizing: border-box; }
+/* Whole pixels everywhere (the owner's rule, 2026-10-20). Every line box is rounded to a whole number of pixels, so each text
+   block, and everything stacked below it, sits on whole pixels. A card on a fraction of a pixel is drawn on its own layer at
+   that fraction while it animates, then snapped back to the pixel grid when it stops, so its contents jump: the answer
+   letters after Check, and earlier the stars on 3x phones. So each element sets its line-height ratio as --lh, never
+   line-height itself, and sizes, gaps and centring are chosen to land on whole pixels too. */
+:root { --lh: 1.5; }
+* { line-height: calc(var(--lh) * 1em); line-height: round(nearest, calc(var(--lh) * 1em), 1px); }
 html { scroll-padding-bottom: var(--dock-space); }
 
 body {
@@ -68,7 +75,6 @@ body {
   color: var(--ink);
   font-family: var(--font-body);
   font-size: var(--step-0);
-  line-height: 1.5;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -85,7 +91,8 @@ body.has-dock .wrap { padding-bottom: var(--dock-space); }
 
 .view { display: grid; gap: 20px; min-width: 0; }
 
-button { font: inherit; color: inherit; }
+/* font: inherit resets line-height too, so buttons repeat the rounded line-height (above). */
+button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(nearest, calc(var(--lh) * 1em), 1px); color: inherit; }
 :focus-visible { outline: 3px solid var(--course-line); outline-offset: 2px; }
 /* Focus rings are for keyboard use: after a tap or click (including the app's own focus moves that follow), none is drawn. */
 .is-pointer :focus-visible, .is-pointer .choice input:focus-visible + span { outline: none; }
@@ -98,7 +105,7 @@ button { font: inherit; color: inherit; }
   font-family: var(--font-display);
   font-weight: 700;
   font-size: var(--step-3);
-  line-height: 1.05;
+  --lh: 1.05;
   letter-spacing: .01em;
   text-wrap: balance;
 }
@@ -178,7 +185,7 @@ button { font: inherit; color: inherit; }
   min-width: 0;
 }
 /* :where() keeps these defaults at plain element weight, so a classed element such as .qtext or .phase-label overrides them. */
-:where(.panel) h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step-2); line-height: 1.15; text-wrap: balance; }
+:where(.panel) h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step-2); --lh: 1.15; text-wrap: balance; }
 :where(.panel) p { margin: 0; }
 
 /* Every progress bar is 10 px thick. */
@@ -216,7 +223,7 @@ button { font: inherit; color: inherit; }
   cursor: pointer;
 }
 @media (hover: hover) and (pointer: fine) { .row.is-locked:hover { background: color-mix(in srgb, var(--course) 8%, var(--surface)); } }
-.course-name { grid-column: 1; grid-row: 1; font-family: var(--font-display); font-weight: 700; font-size: var(--step-3); line-height: 1; }
+.course-name { grid-column: 1; grid-row: 1; font-family: var(--font-display); font-weight: 700; font-size: var(--step-3); --lh: 1; }
 .course-sub { grid-column: 1; grid-row: 2; color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
 .course-card .chev { grid-column: 2; grid-row: 1 / 3; align-self: center; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--course); color: var(--on-neon); }
 .course-card .chev svg { display: block; width: 20px; height: 20px; }
@@ -227,7 +234,7 @@ button { font: inherit; color: inherit; }
 
 /* Section and unit lists */
 .view-head { display: grid; gap: 6px; }
-.view-title { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step-3); line-height: 1.05; }
+.view-title { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step-3); --lh: 1.05; }
 .view-title:focus, h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 /* Back arrow on the left of a list heading, sized to the heading's capitals */
 .title-row { display: flex; align-items: center; gap: 4px; min-width: 0; }
@@ -249,7 +256,8 @@ button { font: inherit; color: inherit; }
 .back-btn::after, .icon-btn::after { content: ""; position: absolute; inset: -3px; }
 .icon-btn::after { inset: -4px; }
 /* Narrow phones: a slightly smaller heading keeps "Advanced, Section 7" on one line next to the arrow. */
-@media (max-width: 359px) { .view-title { font-size: 1.75rem; } }
+/* A 30px line box at this size (even, like the back button), so the title centres beside it on a whole pixel. */
+@media (max-width: 359px) { .view-title { font-size: 1.75rem; --lh: 1.07; } }
 
 /* Each section and unit is its own raised card, like the course cards. */
 .rows { display: grid; gap: 18px; }
@@ -273,7 +281,8 @@ button { font: inherit; color: inherit; }
   transition: background-color .25s ease-out;
 }
 .row-label { grid-column: 1; font-family: var(--font-display); font-weight: 600; font-size: var(--step--1); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
-.row-title { grid-column: 1; font-weight: 700; font-size: var(--step-1); }
+/* A 28px line box (an even height, like the 28px disc), so the disc and lock centre against it on whole pixels. */
+.row-title { grid-column: 1; font-weight: 700; font-size: var(--step-1); --lh: 1.45; }
 .row-sub { grid-column: 1; color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
 .row .bar { grid-column: 1; margin-top: 6px; }
 .row-side {
@@ -430,7 +439,8 @@ button { font: inherit; color: inherit; }
 .fx { position: fixed; inset: 0; z-index: 20; overflow: hidden; pointer-events: none; }
 .spark { position: absolute; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 1.5px; animation: spark .6s cubic-bezier(.16, 1, .3, 1) forwards; }
 @keyframes spark { to { transform: translate(var(--x), var(--y)) rotate(180deg) scale(.4); opacity: 0; } }
-/* On Check: the right answer's letter pops, a wrong pick shakes (started from script on the answered card). */
+/* On Check: the right answer's letter pops (key-pop, which also pops the completed unit's star and the section's check disc),
+   and a wrong pick shakes; both are started from script on the answered card. */
 @keyframes key-pop { 40% { transform: scale(1.3); } }
 @keyframes opt-shake { 20% { transform: translateX(-6px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
 /* The unit just completed: its star fills out from the middle and pops with sparks, then a shine sweeps across the card
@@ -529,7 +539,7 @@ button { font: inherit; color: inherit; }
   transform-style: preserve-3d;
   overflow: visible;
   box-shadow: none;
-  animation: card-jump 1.25s forwards, card-turn 1.25s forwards, card-face 1.25s forwards;
+  animation: card-jump 1.25s forwards, card-turn 1.25s forwards, card-face 1.25s forwards, card-side 1.25s forwards;
 }
 .row.is-flipping > :not(.slab) { animation: card-back 1.25s forwards; }
 /* In the air the card keeps its thickness: instead of the painted edge, its edge is a real slab (slabEl) of six layers behind
@@ -538,14 +548,21 @@ button { font: inherit; color: inherit; }
    layer is scaled up to cancel the turn's perspective, so the slab matches the painted edge before and after the jump. The
    deepest layer is the card's plain grey back; a layer behind them all carries the card's soft shadow. */
 @property --thick { syntax: '<number>'; inherits: true; initial-value: 6; }
+/* --side is 1 while the face is towards you and -1 while the back is (card-side), switching at the edge-on moments, when the
+   switch can't be seen. While the back is towards you, its layers are nearer than the face, so their perspective scale is
+   reversed; the shadow layer moves to the far side and turns over, so it stays behind the card and its shadow still falls
+   downwards; and the 1px edge-coloured line that finishes the edge moves from the back to the face, which is then the far
+   side. So the back shows just like the front at rest: the edge below it, nothing above (the owner's request, 2026-10-20). */
+@property --side { syntax: '<number>'; inherits: true; initial-value: 1; }
 .slab, .slab > span { position: absolute; inset: 0; border-radius: inherit; transform-style: preserve-3d; pointer-events: none; }
 .slab > span {
   --d: calc(var(--thick) * var(--k) / 6);
+  --fix: calc(1 + var(--side) * var(--d) / 700);
   background: var(--slab-color);
-  transform: translate3d(0, calc(var(--d) * (1 + var(--d) / 700) * 1px), calc(var(--d) * -1px)) scale(calc(1 + var(--d) / 700));
+  transform: translate3d(0, calc(var(--d) * var(--fix) * 1px), calc(var(--d) * -1px)) scale(var(--fix));
 }
-.slab > .slab-back { background: var(--surface); box-shadow: inset 0 -1px 0 var(--slab-color); }
-.slab > .slab-shade { background: none; box-shadow: var(--shadow); transform: translate3d(0, 0, calc(var(--d) * -1px)) scale(calc(1 + var(--d) / 700)); }
+.slab > .slab-back { background: var(--surface); box-shadow: inset 0 calc(max(var(--side), 0) * -1px) 0 var(--slab-color); }
+.slab > .slab-shade { background: none; box-shadow: var(--shadow); transform: translate3d(0, 0, calc(var(--d) * var(--side) * -1px)) rotateX(calc((1 - var(--side)) * 90deg)) scale(calc(1 + var(--d) / 700)); }
 /* Height: launched fast and slowing to the top, then falling faster to the landing. */
 @keyframes card-jump {
   0% { translate: 0 0; animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
@@ -569,6 +586,12 @@ button { font: inherit; color: inherit; }
   61.6%, 74% { background-color: var(--course); --thick: 6; --slab-color: var(--course-shade); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
   79%, 86% { background-color: var(--course); --thick: 2; --slab-color: var(--course-shade); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
   to { background-color: var(--course); --thick: 6; --slab-color: var(--course-shade); }
+}
+/* Which side faces you (see --side), and the face's line along its far edge while the back is towards you. */
+@keyframes card-side {
+  0%, 36.5% { --side: 1; box-shadow: none; }
+  36.6%, 61.5% { --side: -1; box-shadow: inset 0 1px 0 var(--slab-color); }
+  61.6%, to { --side: 1; box-shadow: none; }
 }
 /* Contents: hidden while the back faces you, from the first edge-on moment to the second. */
 @keyframes card-back { 0%, 36.5% { visibility: visible; } 36.6%, 61.5% { visibility: hidden; } 61.6%, to { visibility: visible; } }
@@ -611,7 +634,7 @@ button { font: inherit; color: inherit; }
 
 /* Settings page */
 .setting { position: relative; gap: 8px; }
-.setting h3 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step-1); line-height: 1.2; }
+.setting h3 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step-1); --lh: 1.2; }
 .setting > p { color: var(--muted); }
 .setting > .btn { justify-self: start; margin-top: 8px; }
 .setting > .setting-status { color: var(--ink); font-weight: 700; }
@@ -639,7 +662,7 @@ button { font: inherit; color: inherit; }
   font-family: var(--font-body);
   font-weight: 700;
   font-size: var(--step-2);
-  line-height: 1.35;
+  --lh: 1.35;
   max-width: 62ch;
   text-wrap: pretty;
 }
@@ -660,7 +683,7 @@ button { font: inherit; color: inherit; }
   background: var(--surface-raised);
   color: var(--ink);
   font-size: var(--step-1);
-  line-height: 1.4;
+  --lh: 1.4;
   cursor: pointer;
   --lip-color: var(--card-edge);
   box-shadow: 0 var(--lip-size) 0 var(--lip-color), 0 8px 16px rgba(0, 0, 0, .3);
@@ -716,7 +739,7 @@ legend { padding: 0; margin-bottom: 8px; }
 
 /* Run results (All questions) */
 .score { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
-.score-pct { font-family: var(--font-mono); font-weight: 500; font-size: 3rem; line-height: 1; color: var(--course-line); font-variant-numeric: tabular-nums; }
+.score-pct { font-family: var(--font-mono); font-weight: 500; font-size: 3rem; --lh: 1; color: var(--course-line); font-variant-numeric: tabular-nums; }
 .score-count { color: var(--muted); font-size: var(--step-1); font-variant-numeric: tabular-nums; }
 
 /* Pinned action dock */
@@ -734,7 +757,8 @@ legend { padding: 0; margin-bottom: 8px; }
 .dock-inner { max-width: 720px; margin: 0 auto; }
 /* The button lines up with the answer cards: the page column's width, inset by the question card's padding. */
 #dock .dock-inner { max-width: calc(720px - 32px); padding-inline: 22px; }
-.dock .btn { display: grid; place-items: center; width: 100%; min-height: 54px; font-size: var(--step-1); line-height: 1.2; }
+/* A 24px line box, so the label centres in the 54px button on a whole pixel. */
+.dock .btn { display: grid; place-items: center; width: 100%; min-height: 54px; font-size: var(--step-1); --lh: 1.25; }
 /* After Check the button takes the answer's own green or red at once.
    (No colour transition: it restarts on every Check and Next, and piled up when cards were answered faster than frames.) */
 .dock .btn[data-tone="good"] { background: var(--good); --lip-color: color-mix(in srgb, var(--good) 62%, #000); }
@@ -2033,7 +2057,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   function cssVar(name) { return getComputedStyle(document.body).getPropertyValue(name).trim(); }
 
   // A short burst of sparks from the middle of an element, drawn in the .fx layer, each flying 22 to 38px. With fromEdge they
-  // start at the element's edge instead: a solid shape (the star) would otherwise hide most of their flight.
+  // start at the element's edge instead: a solid shape (the star, an answer's letter) would otherwise hide most of their flight.
   function sparks(target, colors, fromEdge) {
     if (reduceMotion()) return;
     var box = target.getBoundingClientRect();
@@ -2056,8 +2080,9 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     setTimeout(function () { made.forEach(function (s) { s.remove(); }); }, 700);
   }
 
-  // Check's reaction: the right answer's letter pops with sparks; a wrong pick shakes once.
-  // Inline animations leave the options' classes and size untouched, and go away with the card.
+  // Check's reaction: the right answer's letter pops and sends out sparks, from its edge as the star's do (a solid badge
+  // would hide them); a wrong pick shakes once, which draws the eye up from the Check button to it. Inline animations leave
+  // the options' classes and size untouched, and go away with the card.
   function answerFx(container, right) {
     if (reduceMotion()) return;
     var opt = container.querySelector(right ? '.is-correct' : '.is-wrong');
@@ -2065,7 +2090,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     if (right) {
       var key = opt.querySelector('.key');
       key.style.animation = 'key-pop .34s cubic-bezier(.22, 1, .36, 1)';
-      sparks(key, [cssVar('--good'), cssVar('--course')]);
+      sparks(key, [cssVar('--good'), cssVar('--course')], true);
     } else {
       opt.style.animation = 'opt-shake .34s cubic-bezier(.36, .07, .19, .97)';
     }
@@ -2177,8 +2202,8 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
 
   // A section or course just completed: its bar fills, then becomes a lime ball the size of the arrow disc, gathered to the
   // middle. The ball squashes down as the card presses with it, then springs up and over into the disc as the card lets go;
-  // the disc turns into the check, and the card presses as it lands. Then the shine and gloss; then the card gives up the
-  // bar's space, and everything below glides up with it.
+  // it squashes into the disc as it lands, the card pressing with the impact, and the disc springs back up as the check.
+  // Then the shine and gloss; then the card gives up the bar's space, and everything below glides up with it.
   // Returns the time at which the next moment (an unlock) can start.
   function finaleFx(card, delay) {
     var bar = card && card.querySelector('.bar');
@@ -2206,8 +2231,9 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       if (ball) ball.classList.add('is-pressing');
       card.classList.add('is-charging');
     }, delay + 990);
-    // Up and over into the disc: un-squashing into a stretch as it launches, round again as it lands. The arc depends on
-    // where the bar and disc sit on this card, so it is built here rather than in the style sheet.
+    // Up and over into the disc: un-squashing into a stretch as it launches, round again as it comes down, then squashed into
+    // the disc on landing, just as it squashed to jump (ball-press). The arc depends on where the bar and disc sit on this
+    // card, so it is built here rather than in the style sheet.
     setTimeout(function () {
       card.classList.remove('is-charging');
       if (!ball) return;
@@ -2229,13 +2255,19 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       }
       // The pressed style stays on underneath (removing it would restart the gather); this flight overrides its transform.
       ball.animate(frames, { duration: 560, easing: 'linear', fill: 'forwards' });
+      ball.animate([
+        { transform: 'translate(' + dx.toFixed(1) + 'px, ' + dy.toFixed(1) + 'px) scale(1, 1)' },
+        { transform: 'translate(' + dx.toFixed(1) + 'px, ' + (dy + squash).toFixed(1) + 'px) scale(1.25, .75)' }
+      ], { duration: 120, delay: 560, easing: 'cubic-bezier(.33, 1, .68, 1)', fill: 'forwards' });
     }, delay + 1290);
+    // It lands, squashing, and the card presses with the impact...
+    setTimeout(function () { card.classList.add('is-landing'); }, delay + 1850);
+    // ...then the disc springs back up as the check.
     setTimeout(function () {
       if (ball) ball.remove();
       setDisc(disc, true);
       disc.classList.add('is-popping');
-      card.classList.add('is-landing');
-    }, delay + 1850);
+    }, delay + 1970);
     setTimeout(function () {
       card.classList.remove('is-landing');
       disc.classList.remove('is-popping');
