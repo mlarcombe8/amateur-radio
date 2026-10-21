@@ -548,7 +548,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
   /* While the back is towards you (cos < 0), the card is drawn where the back really is: --thick x --tilt further down
      (see .flip-depth). */
   translate: 0 calc(var(--jump) + clamp(0, -1000 * cos(var(--turn)), 1) * var(--thick) * var(--tilt) * 1px);
-  transform: perspective(700px) rotateX(var(--turn));
+  transform: rotateX(var(--turn));
   animation: flip-jump 1.25s forwards, flip-turn 1.25s forwards, flip-face 1.25s forwards, flip-color 1.25s forwards;
 }
 .row.is-flipping, .flip-depth { --tilt: calc(sin(var(--turn)) + cos(var(--turn))); }
@@ -571,7 +571,10 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
    rest, over the top just after each edge-on moment, shrinking away, and below again (at 135 and 315 degrees it's edge-on
    to you and shows none), never jumping. Whichever side faces you, the card is drawn on top (its face, or its back where
    the back really is), with the copies behind it. (The owner saw an edge always drawn below the card reverse direction just
-   after edge-on, 2026-10-20.) Its shadow stays in one spot under the card's
+   after edge-on, 2026-10-20.) The turn is drawn flat, with no perspective: the card keeps its width and only grows shorter
+   and taller as it turns, to match the flat view of the resting cards (the owner's choice, 2026-10-20, over a camera
+   angled down onto the card, which was tried and needs a thicker card to show the resting edge). Its shadow stays in one
+   spot under the card's
    place, as if lit from straight above with the card jumping straight up towards the light (the owner's picture,
    2026-10-20): it doesn't move, turn or narrow, but grows a little, softens and fades as the card rises. Its core fills in
    only in the air, so no hole shows under the card then, and nothing dark shows above it in the presses. At rest both
@@ -587,7 +590,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 .flip-depth > span { position: absolute; inset: 0; border-radius: inherit; }
 .flip-depth > .flip-edge {
   background: var(--slab-color);
-  transform: translateY(calc(var(--jump) + var(--thick) * var(--k) / 6 * var(--tilt) * 1px)) perspective(700px) rotateX(var(--turn));
+  transform: translateY(calc(var(--jump) + var(--thick) * var(--k) / 6 * var(--tilt) * 1px)) rotateX(var(--turn));
 }
 .flip-depth > .flip-shadow {
   background: rgba(0, 0, 0, calc(.3 * var(--lift)));
