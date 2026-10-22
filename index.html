@@ -3,7 +3,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Semi+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Semi+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
 /* Layout: one 720px column like a rig's front panel: name plate and courses, section and unit lists, then the flashcard, with the main action pinned to the bottom of the screen. */
 /* Dark theme only, whatever the device or browser is set to (the owner's choice, 2026-10-18). */
@@ -15,7 +15,6 @@
   --card-edge: #131b23;
   --ink: #e5ecf2;
   --muted: #94a4b3;
-  --line: #2e3f4e;
   /* Course colours: azure for Basic, amber for Advanced (the owner's choice, 2026-10-21; amber stands further from the wrong-answer red than orange did).
      The neon fills buttons, cards, selections and pop-ups; their text is off-white, while --on-neon is the dark mark on small neon parts such as the selected letter badge. -line is for bars, focus rings and coloured text. */
   --azure: #3da9ff;
@@ -29,6 +28,9 @@
   --surface-raised: #263646;
   /* Off-white instead of pure white: the text and buttons inside the neon pop-ups. */
   --off-white: #eef2f5;
+  /* The raised edge under off-white buttons (in the pop-ups): a light blue-grey, picked by eye on 2026-10-19. The 62% black
+     mix used under coloured things would be a heavy dark grey under a light button. */
+  --off-white-edge: #c3ccd3;
   /* Locked-unit pop-up: grey on grey. */
   --locked-pop: #334250;
   --locked-ink: #c0cbd5;
@@ -39,6 +41,9 @@
   /* Depth: cards cast a soft shadow; pop-ups float higher and cast a deeper one. */
   --shadow: 0 4px 8px rgba(0, 0, 0, .4), 0 16px 34px rgba(0, 0, 0, .5);
   --pop-shadow: 0 8px 18px rgba(0, 0, 0, .5), 0 24px 46px rgba(0, 0, 0, .6);
+  /* Answers sit lower, inside the play panel; the dock casts its shadow up over the page. */
+  --shadow-low: 0 8px 16px rgba(0, 0, 0, .3);
+  --dock-shadow: 0 -8px 24px rgba(0, 0, 0, .45);
 
   --font-display: "Barlow Semi Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
   --font-body: "Atkinson Hyperlegible", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -56,7 +61,8 @@
 /* The colour of the course on screen: Basic unless data-course="advanced" (set on <body> for each screen, and on the Advanced card). */
 :root { --course: var(--azure); --course-line: var(--azure-line); --course-shade: color-mix(in srgb, var(--azure) 62%, #000); }
 [data-course="advanced"] { --course: var(--amber); --course-line: var(--amber-line); --course-shade: color-mix(in srgb, var(--amber) 62%, #000); }
-/* --course-shade: the course colour's lighter shade, used for raised edges under course-coloured things and for progress on course-coloured cards. */
+/* --course-shade: a darker shade of the course colour (62% of it, mixed with black), used for raised edges under course-coloured
+   things and for progress tracks on course-coloured cards. Every coloured raised edge is its colour mixed 62% with black. */
 
 [hidden] { display: none !important; }
 *, *::before, *::after { box-sizing: border-box; }
@@ -99,14 +105,15 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 /* Name plate */
-.plate { display: flex; align-items: baseline; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
+/* 38px tall, like the other screens' heading rows (their back button), so the title and the first card sit in the same place
+   on every screen. */
+.plate { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; min-height: 38px; }
 .plate h1 {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 700;
   font-size: var(--step-3);
   --lh: 1.05;
-  letter-spacing: .01em;
   text-wrap: balance;
 }
 .plate p { margin: 0; color: var(--muted); font-size: var(--step--1); }
@@ -135,12 +142,12 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
   appearance: none;
   border: 0;
   background: var(--surface);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 10px 18px;
   font-weight: 700;
   cursor: pointer;
   min-height: 44px;
-  --lip-color: color-mix(in srgb, var(--line) 55%, #000);
+  --lip-color: var(--card-edge);
   box-shadow: 0 var(--lip-size) 0 var(--lip-color);
 }
 /* Raised buttons: a solid edge underneath, --lip-size tall in a darker shade of the button, pressed flat while held.
@@ -166,8 +173,12 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
    the background.) */
 @media (hover: hover) and (pointer: fine) { .btn.btn:hover:not(:disabled) { background-image: linear-gradient(rgba(0, 0, 0, .05), rgba(0, 0, 0, .05)); } }
 .btn.primary:disabled { background: var(--seg-off); color: var(--muted); text-shadow: none; opacity: 1; }
-.btn.danger { background: var(--bad); color: var(--surface); --lip-color: color-mix(in srgb, var(--bad) 62%, #000); }
+/* Red, with off-white text like the red Next button. */
+.btn.danger { background: var(--bad); color: var(--off-white); text-shadow: 0 1px 2px rgba(0, 0, 0, .45); --lip-color: color-mix(in srgb, var(--bad) 62%, #000); }
 .btn.small { min-height: 36px; padding: 6px 12px; font-size: var(--step--1); }
+/* The dock, pop-up and Settings buttons are one size: 54px tall, with a 19px label in a 24px line box, which centres in it on
+   a whole pixel. */
+.dock .btn, .bubble .btn, .setting > .btn { display: grid; place-items: center; min-height: 54px; font-size: var(--step-1); --lh: 1.25; }
 .btn:disabled { opacity: .4; cursor: default; box-shadow: none; }
 .link-btn {
   appearance: none; border: 0; background: none; padding: 6px 0;
@@ -175,7 +186,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
   text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
 }
 @media (hover: hover) and (pointer: fine) { .link-btn:hover:not(:disabled) { color: var(--ink); } }
-.link-btn:disabled { opacity: .45; text-decoration: none; cursor: default; }
+.link-btn:disabled { opacity: .4; text-decoration: none; cursor: default; }
 .nav-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
 /* Panels */
@@ -218,20 +229,20 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
   gap: 10px 12px;
   width: 100%;
   text-align: left;
-  padding: 18px 20px;
+  /* 16px, like the section rows' sides, so text and arrow discs line up from screen to screen. */
+  padding: 16px;
   border: 0;
   border-radius: 14px;
   background: var(--surface);
   --lip-color: var(--card-edge);
   box-shadow: 0 var(--lip-size) 0 var(--lip-color), var(--shadow);
-  color: var(--ink);
   cursor: pointer;
 }
 @media (hover: hover) and (pointer: fine) { .row.is-locked:hover { background: color-mix(in srgb, var(--course) 8%, var(--surface)); } }
 .course-name { grid-column: 1; grid-row: 1; font-family: var(--font-display); font-weight: 700; font-size: var(--step-3); --lh: 1; }
 /* The same size as the "Unit 1 · 4 questions" line in a unit's pop-up (the owner's choice, 2026-10-21). */
 .course-sub { grid-column: 1; grid-row: 2; color: var(--muted); font-size: var(--step-0); font-variant-numeric: tabular-nums; }
-.course-card .chev { grid-column: 2; grid-row: 1 / 3; align-self: center; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--course); color: var(--on-neon); }
+.course-card .chev { grid-column: 2; grid-row: 1 / 3; align-self: center; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; }
 .course-card .chev svg { display: block; width: 20px; height: 20px; }
 .course-card .bar { grid-column: 1 / -1; grid-row: 3; }
 .chev { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--course-shade); color: var(--ink); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .55); }
@@ -284,23 +295,23 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
   color: var(--ink);
   text-align: left;
   cursor: pointer;
-  transition: background-color .25s ease-out;
+  transition: background-color .25s cubic-bezier(.33, 1, .68, 1);
 }
 .row-label { grid-column: 1; font-family: var(--font-display); font-weight: 600; font-size: var(--step--1); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
 /* A 28px line box (an even height, like the 28px disc), so the disc and lock centre against it on whole pixels. */
 .row-title { grid-column: 1; font-weight: 700; font-size: var(--step-1); --lh: 1.45; }
-.row-sub { grid-column: 1; color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
 .row .bar { grid-column: 1; margin-top: 6px; }
 .row-side {
   grid-column: 2; grid-row: 1 / span 3;
   display: flex; align-items: center; gap: 10px;
   color: var(--muted); font-size: var(--step--1); font-weight: 700; font-variant-numeric: tabular-nums;
 }
-.section-row { grid-template-columns: minmax(0, 1fr) 28px; }
+/* A 36px column, the course cards' disc size, so the 28px disc and the lock centre where a course card's arrow does. */
+.section-row { grid-template-columns: minmax(0, 1fr) 36px; }
 .section-row .row-side { grid-row: 1; justify-content: center; }
 .section-row.has-label .row-side { grid-row: 1 / span 2; }
 .section-row .bar { grid-column: 1 / -1; }
-.row.is-locked .row-label, .row.is-locked .row-title, .row.is-locked .row-sub { color: var(--muted); opacity: .9; }
+.row.is-locked .row-label, .row.is-locked .row-title { color: var(--muted); opacity: .9; }
 /* Units are square cards on a winding path, one under another: centred, then half a card and a whole card to the left,
    back through the centre and out to the right, every eight units. The offset is `left`, so the press and flip keep `transform`. */
 .unit-path { position: relative; justify-items: start; gap: 28px; }
@@ -333,7 +344,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 .waves > span, .ripple::before {
   content: "";
   position: absolute; inset: 0;
-  border: 2.5px solid var(--course);
+  border: 3px solid var(--course);
   border-radius: inherit;
   opacity: 0;
 }
@@ -348,7 +359,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 .waves > span { animation: call-wave .9s cubic-bezier(.2, .6, .4, 1) .12s forwards; }
 @keyframes call-wave { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(1.75); opacity: 0; } }
 /* The landing ring: thicker, brighter, slower, and spreading further. */
-.waves > .is-big { border-width: 3.5px; animation: call-wave-big 1.2s cubic-bezier(.2, .6, .4, 1) forwards; }
+.waves > .is-big { border-width: 4px; animation: call-wave-big 1.2s cubic-bezier(.2, .6, .4, 1) forwards; }
 @keyframes call-wave-big { 0% { transform: scale(1); opacity: .9; } 100% { transform: scale(2.4); opacity: 0; } }
 .unit-sq.is-calling:active, .unit-sq.is-calling[aria-expanded="true"] { animation: none; }
 .unit-path:has(.is-current:active) .waves, .unit-path:has(.is-current[aria-expanded="true"]) .waves { visibility: hidden; }
@@ -382,15 +393,17 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 .course-card, .row:not(.is-locked) {
   background: var(--course);
   --lip-color: var(--course-shade);
+  color: var(--off-white);
   text-shadow: 0 1px 2px rgba(0, 0, 0, .45);
 }
-.course-card .chev { background: var(--course-shade); color: var(--ink); }
+.course-card .chev { background: var(--course-shade); color: var(--off-white); }
 @media (hover: hover) and (pointer: fine) { .course-card:hover, .row:not(.is-locked):hover { background-image: linear-gradient(rgba(0, 0, 0, .05), rgba(0, 0, 0, .05)); } }
 .course-card .bar, .row .bar { background: var(--course-shade); }
 .course-card .bar span, .row .bar span { background: var(--lime); }
-/* All text and arrows on the course-coloured cards are the same off-white as the titles (the owner's choice, low contrast on the neon). */
-.course-card .course-sub, .course-card .chev, .row:not(.is-locked) .row-label, .row:not(.is-locked) .row-sub, .row:not(.is-locked) .row-side,
-.row:not(.is-locked) .chev { color: var(--ink); }
+/* All text and arrows on the course-coloured cards are --off-white, like the course-coloured pop-ups and buttons (the owner's
+   choice, low contrast on the neon). */
+.course-card .course-sub, .course-card .chev, .row:not(.is-locked) .row-label, .row:not(.is-locked) .row-side,
+.row:not(.is-locked) .chev { color: var(--off-white); }
 /* Progress tracks are recessed: the empty part sits in a shallow groove. */
 .bar, .unit-bar { box-shadow: inset 0 1px 2px rgba(0, 0, 0, .55); }
 /* The filled part reads as a raised tube in that groove: a lighter shine along its upper part and a slightly darker lower edge. */
@@ -406,7 +419,9 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 
 /* Pop-ups: floating over the unit list, or under the X and Hint buttons while playing */
 .rows-wrap { position: relative; }
-#unit-bubble { left: 12px; right: 12px; }
+/* Pop-ups line up with the edges of the list or panel they float over. (A class, not the id: a closing unit pop-up gives up
+   its id, and must stay where it is while it fades.) */
+.unit-pop { left: 0; right: 0; }
 /* Every space in a pop-up reads as 16px, like the button's sides (the owner's request, 2026-10-21): from the top edge to the
    first line's capitals, from each line's baseline to the next line's capitals or the button, and below the button's edge
    (or the last line's baseline). The padding and margins are 16px less the room a line box leaves above its capitals and
@@ -422,7 +437,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
   /* A soft dark shadow helps the off-white text read on the neon. */
   text-shadow: 0 1px 2px rgba(0, 0, 0, .45);
   box-shadow: var(--pop-shadow);
-  animation: bubble-in .15s ease-out;
+  animation: bubble-in .15s cubic-bezier(.33, 1, .68, 1);
 }
 .bubble::before {
   content: "";
@@ -436,7 +451,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 .bubble.is-above::before { top: auto; bottom: -6px; }
 .bubble :focus-visible { outline-color: var(--on-neon); }
 .bubble p { position: relative; margin: 0; font-weight: 700; }
-.bubble .btn, .bubble .btn.primary { position: relative; width: 100%; min-height: 48px; font-size: var(--step-1); background: var(--off-white); color: var(--course); text-shadow: none; --lip-color: #c3ccd3; }
+.bubble .btn, .bubble .btn.primary { position: relative; width: 100%; background: var(--off-white); color: var(--course); text-shadow: none; --lip-color: var(--off-white-edge); }
 .bubble.is-locked { background: var(--locked-pop); color: var(--locked-ink); text-shadow: none; box-shadow: var(--pop-shadow); }
 .bubble .bubble-name { font-size: var(--step-1); --lh: 1.45; }
 .bubble .bubble-name + p, .bubble .bubble-unit { font-weight: 400; }
@@ -446,6 +461,9 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 /* A locked unit's pop-up ends with a line of text, not a button and its 6px edge. */
 .bubble.is-locked { padding-bottom: 9px; }
 @keyframes bubble-in { from { opacity: 0; transform: translateY(-4px); } }
+/* Closing plays the opening backwards: the same 0.15s and 4px, easing in instead of out (fadeOut). */
+.bubble.is-closing { animation: bubble-out .15s cubic-bezier(.32, 0, .67, 0) forwards; pointer-events: none; }
+@keyframes bubble-out { to { opacity: 0; transform: translateY(-4px); } }
 .lock { display: inline-flex; justify-content: center; width: 28px; color: var(--muted); }
 .lock svg { display: block; width: 16px; height: 16px; }
 
@@ -463,7 +481,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 @keyframes star-fill { from { transform: scale(0); } }
 .unit-sq.is-popping .star { animation: key-pop .34s cubic-bezier(.22, 1, .36, 1); }
 .course-card.is-completing::before, .row.is-completing::before { opacity: 0; }
-.course-card.is-completing.is-shining::before, .row.is-completing.is-shining::before { opacity: 1; transition: opacity .45s ease-out .15s; }
+.course-card.is-completing.is-shining::before, .row.is-completing.is-shining::before { opacity: 1; transition: opacity .45s cubic-bezier(.33, 1, .68, 1) .15s; }
 .course-card.is-shining, .row.is-shining { overflow: hidden; }
 .course-card.is-shining::after, .row.is-shining::after {
   content: "";
@@ -481,8 +499,8 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 @keyframes shine-sweep-wide { 0% { left: -160px; opacity: 0; } 20%, 80% { opacity: 1; } 100% { left: calc(100% + 70px); opacity: 0; } }
 /* A completed section or course shows a lime disc with an off-white check in place of its arrow, and no bar. */
 .course-card .chev.is-check, .row .chev.is-check { background: var(--lime); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .18); color: var(--off-white); }
-.chev.is-check svg { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .45)); }
-.chev.is-popping svg { animation: key-pop .36s cubic-bezier(.22, 1, .36, 1); }
+.chev.is-check svg { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .45)); }
+.chev.is-popping svg { animation: key-pop .34s cubic-bezier(.22, 1, .36, 1); }
 .course-card.is-done:not(.is-finale) .bar { display: none; }
 /* A section or course with no unit completed yet shows no bar either, and its card is shorter. The empty bar stays only for
    screen readers ("0 of 6 units completed"). Its first completed unit grows the card to make room, then the bar fills (growFx). */
@@ -525,7 +543,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 .fx-ball.is-pressing { animation: ball-press .15s cubic-bezier(.33, 1, .68, 1) forwards; }
 @keyframes ball-press { to { transform: translateY(calc(var(--d) / 8)) scale(1.25, .75); } }
 /* While the ball charges, the card presses down with it (a tap's press), and lets go as the ball launches (see --press). */
-.course-card.is-finale, .row.is-finale { transition: --press .15s cubic-bezier(.33, 1, .68, 1), background-color .25s ease-out; }
+.course-card.is-finale, .row.is-finale { transition: --press .15s cubic-bezier(.33, 1, .68, 1), background-color .25s cubic-bezier(.33, 1, .68, 1); }
 .course-card.is-finale:not(:active), .row.is-finale:not(:active) { translate: 0 var(--press); --lip-size: calc(6px - var(--press)); }
 .course-card.is-charging, .row.is-charging { --press: 4px; }
 .course-card.is-landing, .row.is-landing { animation: card-land .48s cubic-bezier(.33, 1, .68, 1); }
@@ -533,11 +551,11 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 /* A row that has just unlocked: it looks locked (grey, with the grey lock) until its moment, then the lock turns the course
    colour, pops and opens on its left side. Its usual contents stay hidden until the card has turned over. */
 .row-side { position: relative; }
-.row-side > *, .row .bar { transition: opacity .25s ease-out; }
-.row-title, .row-label, .row-sub { transition: color .3s ease-out; }
+.row-side > *, .row .bar { transition: opacity .25s cubic-bezier(.33, 1, .68, 1); }
+.row-title, .row-label { transition: color .3s cubic-bezier(.33, 1, .68, 1); }
 .row.is-unlocking { background: var(--surface); --lip-color: var(--card-edge); text-shadow: none; transition: none; }
 .row.is-unlocking .row-side > :not(.unlock-fx), .row.is-unlocking .bar { opacity: 0; transition: none; }
-.row.is-unlocking .row-title, .row.is-unlocking .row-label, .row.is-unlocking .row-sub { color: var(--muted); }
+.row.is-unlocking .row-title, .row.is-unlocking .row-label { color: var(--muted); }
 .unlock-fx { position: absolute; right: 0; top: 50%; margin-top: -8px; color: var(--course-line); animation: unlock .9s var(--delay, 0s) cubic-bezier(.22, 1, .36, 1) both; }
 .unlock-fx .lock-shackle { transform-origin: 4.75px 7px; animation: shackle .9s var(--delay, 0s) cubic-bezier(.22, 1, .36, 1) both; }
 @keyframes unlock { 0% { color: var(--muted); } 12% { color: var(--course-line); } 25% { transform: scale(1.35); } 65% { transform: scale(1.2); opacity: 1; } to { transform: scale(.5); opacity: 0; color: var(--course-line); } }
@@ -654,40 +672,39 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
   flex: none;
   display: grid; place-items: center;
   width: 36px; height: 36px;
-  margin-left: -8px;
+  margin-left: -7px;
   border: 0; border-radius: 8px;
   background: none;
   color: var(--muted);
   cursor: pointer;
 }
 @media (hover: hover) and (pointer: fine) { .icon-btn:hover:not(:disabled) { color: var(--ink); } }
-.icon-btn svg { display: block; width: 20px; height: 20px; }
-.hint-btn { margin-left: 0; margin-right: -8px; color: var(--muted); }
+.icon-btn svg { display: block; width: 22px; height: 22px; }
+.hint-btn { margin-left: 0; margin-right: -7px; color: var(--muted); }
 /* The hint is grey and brightens on hover like the X; it takes the course colour only while selected (its pop-up open),
    and then dims 5% on hover, like the coloured cards. */
 .icon-btn.hint-btn[aria-expanded="true"] { color: var(--course-line); }
 @media (hover: hover) and (pointer: fine) { .icon-btn.hint-btn[aria-expanded="true"]:hover { color: color-mix(in srgb, var(--course-line) 95%, #000); } }
 .hint-btn:disabled { opacity: .4; cursor: default; }
-.hint-btn svg { width: 22px; height: 22px; }
-.play-pop { width: min(300px, calc(100% - 24px)); }
-#leave-pop { left: 12px; }
-#hint-pop { right: 12px; }
+.play-pop { width: min(300px, 100%); }
+#leave-pop { left: 0; }
+#hint-pop { right: 0; }
 
 /* Settings gear at the right of the home heading: grey, brightening on hover like the X and the hint.
    Its negative margins keep the heading row the title's height, so the course cards don't move. */
-.settings-btn { align-self: center; margin: -2px -8px -2px 0; }
-.settings-btn svg { width: 24px; height: 24px; }
+.settings-btn { align-self: center; margin: -2px -7px -2px 0; }
 
 /* Settings page */
-.setting { position: relative; gap: 8px; }
+/* .panel.setting, so the phone rule for panels can't override its spacing. */
+.panel.setting { position: relative; gap: 8px; }
 .setting h3 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step-1); --lh: 1.2; }
 .setting > p { color: var(--muted); }
 .setting > .btn { justify-self: start; margin-top: 8px; }
 .setting > .setting-status { color: var(--ink); font-weight: 700; }
 .setting > .setting-status:empty { margin-top: -8px; }
-/* Red, with off-white text like the red Next button. */
-.btn.primary.danger { color: var(--off-white); }
-#reset-pop { left: 12px; }
+/* Red, like the button that opens it. */
+#reset-pop { left: 0; background: var(--bad); }
+#reset-pop .btn { color: var(--bad); }
 .tag {
   font-family: var(--font-display); font-weight: 600; font-size: var(--step--1);
   text-transform: uppercase; letter-spacing: .1em;
@@ -701,7 +718,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 
 .unit-bar { height: 10px; border-radius: 5px; background: var(--course-shade); overflow: hidden; }
 .unit-bar span { display: block; height: 100%; border-radius: 5px; background: var(--lime); }
-.phase-label { margin: -8px 0 0; font-family: var(--font-display); font-weight: 700; font-size: var(--step--1); text-transform: uppercase; letter-spacing: .1em; color: var(--course-line); }
+.phase-label { margin: -8px 0 0; font-family: var(--font-display); font-weight: 600; font-size: var(--step--1); text-transform: uppercase; letter-spacing: .1em; color: var(--course-line); }
 
 .qtext {
   margin: 0;
@@ -732,8 +749,8 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
   --lh: 1.4;
   cursor: pointer;
   --lip-color: var(--card-edge);
-  box-shadow: 0 var(--lip-size) 0 var(--lip-color), 0 8px 16px rgba(0, 0, 0, .3);
-  transition: background-color .15s ease, opacity .15s ease;
+  box-shadow: 0 var(--lip-size) 0 var(--lip-color), var(--shadow-low);
+  transition: background-color .15s cubic-bezier(.33, 1, .68, 1), opacity .15s cubic-bezier(.33, 1, .68, 1);
 }
 @media (hover: hover) and (pointer: fine) { .opt:not(.is-selected):hover:not(:disabled) { background: color-mix(in srgb, var(--course) 8%, var(--surface-raised)); } }
 .opt:disabled { cursor: default; color: var(--ink); }
@@ -748,12 +765,12 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 .opt .txt { min-width: 0; padding-top: 2px; overflow-wrap: anywhere; }
 .opt.is-selected { --face: color-mix(in srgb, var(--course) 35%, var(--surface-raised)); }
 /* A coloured answer's edge is a darker shade of its own top, like every other raised thing. */
-.opt.is-selected, .opt.is-correct, .opt.is-wrong { background: var(--face); --lip-color: color-mix(in srgb, var(--face) 55%, #000); }
+.opt.is-selected, .opt.is-correct, .opt.is-wrong { background: var(--face); --lip-color: color-mix(in srgb, var(--face) 62%, #000); }
 .opt.is-selected .key { background: var(--course); color: var(--on-neon); box-shadow: none; }
 .opt.is-correct { --face: color-mix(in srgb, var(--good) 35%, var(--surface-raised)); }
-.opt.is-correct .key { background: var(--good); color: var(--surface); box-shadow: none; }
+.opt.is-correct .key { background: var(--good); color: var(--on-neon); box-shadow: none; }
 .opt.is-wrong { --face: color-mix(in srgb, var(--bad) 35%, var(--surface-raised)); }
-.opt.is-wrong .key { background: var(--bad); color: var(--surface); box-shadow: none; }
+.opt.is-wrong .key { background: var(--bad); color: var(--on-neon); box-shadow: none; }
 .opt.is-dim { opacity: .55; }
 .opt.is-removed { opacity: .35; }
 .opt.is-removed .txt { text-decoration: line-through; }
@@ -794,7 +811,7 @@ legend { padding: 0; margin-bottom: 8px; }
   left: 0; right: 0; bottom: 0;
   z-index: 10;
   background: var(--surface);
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, .45);
+  box-shadow: var(--dock-shadow);
   padding-top: 12px;
   padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   padding-left: max(16px, env(safe-area-inset-left, 0px));
@@ -803,8 +820,7 @@ legend { padding: 0; margin-bottom: 8px; }
 .dock-inner { max-width: 720px; margin: 0 auto; }
 /* The button lines up with the answer cards: the page column's width, inset by the question card's padding. */
 #dock .dock-inner { max-width: calc(720px - 32px); padding-inline: 22px; }
-/* A 24px line box, so the label centres in the 54px button on a whole pixel. */
-.dock .btn { display: grid; place-items: center; width: 100%; min-height: 54px; font-size: var(--step-1); --lh: 1.25; }
+.dock .btn { width: 100%; }
 /* After Check the button takes the answer's own green or red at once.
    (No colour transition: it restarts on every Check and Next, and piled up when cards were answered faster than frames.) */
 .dock .btn[data-tone="good"] { background: var(--good); --lip-color: color-mix(in srgb, var(--good) 62%, #000); }
@@ -820,15 +836,14 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
 @media (max-width: 480px) {
   .wrap { padding-block: 16px 32px; }
   .view { gap: 16px; }
-  .panel { padding: 16px; gap: 16px; border-radius: 12px; }
+  .panel { padding: 16px; gap: 16px; }
   #dock .dock-inner { padding-inline: 16px; }
   .qtext { font-size: var(--step-1); }
   .opt { font-size: var(--step-0); padding: 10px 12px; gap: 4px 12px; }
-  .course-card { padding: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .bar span, .unit-bar span, .opt { transition: none; }
-  .bubble, .spark, .unlock-fx, .unlock-fx .lock-shackle, .row.is-flipping, .row.is-flipping > *, .flip-depth { animation: none; }
+  .bubble, .bubble.is-closing, .spark, .unlock-fx, .unlock-fx .lock-shackle, .row.is-flipping, .row.is-flipping > *, .flip-depth { animation: none; }
   .unit-sq.is-completing .star-fill, .unit-sq.is-popping .star, .course-card.is-shining::after, .row.is-shining::after { animation: none; }
   .fx-ball, .fx-ball::before, .fx-ball::after, .chev.is-popping svg, .course-card.is-landing, .row.is-landing { animation: none; }
   .unit-sq.is-calling, .waves > span, .ripple::before { animation: none; }
@@ -931,7 +946,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       <p>Are you sure you want to use a hint?</p>
       <button class="btn" id="hint-yes" type="button">Use hint</button>
     </div>
-    <p class="phase-label" id="play-phase" hidden>Retry</p>
+    <p class="phase-label" id="play-phase" hidden>Second chance</p>
     <h2 class="qtext" id="play-text" tabindex="-1"></h2>
     <div class="opts" id="play-opts" role="group" aria-labelledby="play-text"></div>
     <p class="sr-only" id="play-verdict" role="status" aria-live="polite"></p>
@@ -1914,21 +1929,42 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     var row = bubbleRow;
     bubbleRow = null;
     if (row) row.setAttribute('aria-expanded', 'false');
-    if (bubble) bubble.remove();
+    if (bubble) {
+      // It gives up its id at once, so another unit's pop-up can open while it fades.
+      bubble.removeAttribute('id');
+      fadeOut(bubble, function () { bubble.remove(); });
+    }
     return row;
   }
+
+  // Pop-ups close the way they open, backwards (.is-closing), then go; meanwhile they take no taps, keys or focus.
+  function fadeOut(pop, done) {
+    if (reduceMotion()) { done(); return; }
+    pop.inert = true;
+    pop.classList.add('is-closing');
+    pop.closing = setTimeout(function () {
+      pop.closing = null;
+      pop.classList.remove('is-closing');
+      pop.inert = false;
+      done();
+    }, 150);
+  }
+  function popOpen(pop) { return !pop.hidden && !pop.closing; }
 
   // A pop-up's pointer keeps at least this far from its sides (its 12px rounded corners plus the pointer's own half-width),
   // so it always joins the straight part of the top edge.
   var CARET_MIN = 16;
+  // Every pop-up's pointer stops 2px short of what it points at: the pop-up's edge is POP_GAP from the card or button,
+  // counted from the bottom of its raised edge (EDGE, the 6px --lip-size of cards and buttons) when the pop-up is below.
+  var POP_GAP = 10, EDGE = 6;
 
   // Floats just below its unit, over the units that follow, so nothing in the list moves.
   // Near the end of the list, where there's no room below, it opens above the unit instead. Its pointer aims at the unit.
   function placeBubble() {
     var bubble = $('unit-bubble');
     if (!bubble || !bubbleRow) return;
-    var below = bubbleRow.offsetTop + bubbleRow.offsetHeight + 8;
-    var above = bubbleRow.offsetTop - bubble.offsetHeight - 8;
+    var below = bubbleRow.offsetTop + bubbleRow.offsetHeight + EDGE + POP_GAP;
+    var above = bubbleRow.offsetTop - bubble.offsetHeight - POP_GAP;
     var flip = below + bubble.offsetHeight > $('units-wrap').offsetHeight && above >= 0;
     bubble.classList.toggle('is-above', flip);
     bubble.style.top = (flip ? above : below) + 'px';
@@ -1946,7 +1982,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     closeBubble();
     if (wasOpen) return;
     var locked = !isUnlocked(u);
-    var bubble = el('div', 'bubble' + (locked ? ' is-locked' : ''));
+    var bubble = el('div', 'bubble unit-pop' + (locked ? ' is-locked' : ''));
     bubble.id = 'unit-bubble';
     bubble.appendChild(el('p', 'bubble-unit', 'Unit ' + u.n + DOT + u.ids.length + ' questions'));
     if (nameOf(u.key)) bubble.appendChild(el('p', 'bubble-name', nameOf(u.key)));
@@ -2101,10 +2137,13 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   function reduceMotion() { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
   function cssVar(name) { return getComputedStyle(document.body).getPropertyValue(name).trim(); }
 
-  // A short burst of sparks from an element (a completed star, a right answer's letter, an opening lock), drawn in the .fx
-  // layer. They start at its edge and fly 22 to 38px out: from its middle, a solid shape hid most of their flight.
-  function sparks(target, colors) {
+  // A short burst of sparks from an element (a completed star, a right answer's letter, an opening lock, a new check disc),
+  // drawn in the .fx layer. They start at its edge and fly 22 to 38px out: from its middle, a solid shape hid most of their
+  // flight. Every burst is green and off-white, which show on both course colours (the owner's choice, 2026-10-22:
+  // course-colour sparks were lost against the course-coloured unit cards).
+  function sparks(target) {
     if (reduceMotion()) return;
+    var colors = [cssVar('--good'), cssVar('--off-white')];
     var box = target.getBoundingClientRect();
     // Skip a burst if earlier ones are still around (fast keyboard answering, or a throttled background tab).
     if (!box.width || $('fx').childElementCount > 40) return;
@@ -2134,7 +2173,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     if (right) {
       var key = opt.querySelector('.key');
       key.style.animation = 'key-pop .34s cubic-bezier(.22, 1, .36, 1)';
-      sparks(key, [cssVar('--good'), cssVar('--course')]);
+      sparks(key);
     } else {
       opt.style.animation = 'opt-shake .34s cubic-bezier(.36, .07, .19, .97)';
     }
@@ -2154,7 +2193,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     lock.style.setProperty('--delay', delay + 'ms');
     row.classList.add('is-unlocking');
     row.querySelector('.row-side').appendChild(lock);
-    setTimeout(function () { sparks(lock, [cssVar('--course'), cssVar('--good')]); }, delay + 220);
+    setTimeout(function () { sparks(lock); }, delay + 220);
     flipFx(row, delay + 500);
   }
 
@@ -2206,7 +2245,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     row.classList.add('is-completing');
     setTimeout(function () {
       row.classList.add('is-popping');
-      sparks(star, [cssVar('--lime'), cssVar('--off-white')]);
+      sparks(star);
     }, delay + 350);
     setTimeout(function () { row.classList.add('is-shining'); }, delay + 700);
     setTimeout(function () { row.classList.remove('is-completing', 'is-popping', 'is-shining'); }, delay + 1350);
@@ -2334,12 +2373,13 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       disc.style.visibility = 'hidden';
       card.classList.add('is-landing');
     }, delay + 1850);
-    // ...and once the ball has sprung back and settled round, it becomes the check, which pops.
+    // ...and once the ball has sprung back and settled round, it becomes the check, which pops with sparks.
     setTimeout(function () {
       if (ball) ball.remove();
       setDisc(disc, true);
       disc.style.visibility = '';
       disc.classList.add('is-popping');
+      sparks(disc);
     }, delay + 2170);
     setTimeout(function () { card.classList.remove('is-landing'); }, delay + 2350);
     setTimeout(function () { disc.classList.remove('is-popping'); }, delay + 2550);
@@ -2400,7 +2440,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       tilt.push(0);
       card.animate(tilt.map(function (deg) { return { rotate: deg.toFixed(2) + 'deg' }; }), 950);
       // The bar pops in at its full length as the card opens: it only fades in, quickly, and never changes size.
-      bar.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: 970, easing: 'ease-out', fill: 'backwards' });
+      bar.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: 970, easing: 'cubic-bezier(.33, 1, .68, 1)', fill: 'backwards' });
     }, delay);
     setTimeout(function () {
       card.style.overflow = '';
@@ -2489,9 +2529,10 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   // ---- Pop-ups under the X and Hint buttons, and under Reset all progress --------
 
   function closePops() {
-    $('leave-pop').hidden = true;
-    $('hint-pop').hidden = true;
-    $('reset-pop').hidden = true;
+    ['leave-pop', 'hint-pop', 'reset-pop'].forEach(function (id) {
+      var pop = $(id);
+      if (popOpen(pop)) fadeOut(pop, function () { pop.hidden = true; });
+    });
     ['play-leave', 'play-hint', 'reset-btn'].forEach(function (id) { $(id).setAttribute('aria-expanded', 'false'); });
   }
 
@@ -2499,13 +2540,20 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   // the hint), the pop-up moves over so its pointer stays clear of the rounded corner.
   function togglePop(id, btn) {
     var pop = $(id);
-    var wasOpen = !pop.hidden;
+    var wasOpen = popOpen(pop);
     closePops();
     if (wasOpen) return;
+    // Reopened while fading out: it stops fading and opens again.
+    if (pop.closing) {
+      clearTimeout(pop.closing);
+      pop.closing = null;
+      pop.classList.remove('is-closing');
+      pop.inert = false;
+    }
     pop.hidden = false;
     pop.style.left = '';
     pop.style.right = '';
-    pop.style.top = (btn.offsetTop + btn.offsetHeight + 10) + 'px';
+    pop.style.top = (btn.offsetTop + btn.offsetHeight + (btn.classList.contains('btn') ? EDGE : 0) + POP_GAP) + 'px';
     var caret = btn.offsetLeft + btn.offsetWidth / 2 - pop.offsetLeft - 7;
     var shift = Math.max(0, CARET_MIN - caret) - Math.max(0, caret - (pop.offsetWidth - CARET_MIN - 14));
     if (shift) {
@@ -2706,7 +2754,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       return;
     }
     if (e.key === 'Escape' && view === 'settings') {
-      if (!$('reset-pop').hidden) {
+      if (popOpen($('reset-pop'))) {
         closePops();
         $('reset-btn').focus();
       }
