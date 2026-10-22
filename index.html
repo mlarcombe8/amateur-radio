@@ -229,7 +229,8 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 }
 @media (hover: hover) and (pointer: fine) { .row.is-locked:hover { background: color-mix(in srgb, var(--course) 8%, var(--surface)); } }
 .course-name { grid-column: 1; grid-row: 1; font-family: var(--font-display); font-weight: 700; font-size: var(--step-3); --lh: 1; }
-.course-sub { grid-column: 1; grid-row: 2; color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
+/* The same size as the "Unit 1 · 4 questions" line in a unit's pop-up (the owner's choice, 2026-10-21). */
+.course-sub { grid-column: 1; grid-row: 2; color: var(--muted); font-size: var(--step-0); font-variant-numeric: tabular-nums; }
 .course-card .chev { grid-column: 2; grid-row: 1 / 3; align-self: center; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--course); color: var(--on-neon); }
 .course-card .chev svg { display: block; width: 20px; height: 20px; }
 .course-card .bar { grid-column: 1 / -1; grid-row: 3; }
@@ -406,12 +407,15 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 /* Pop-ups: floating over the unit list, or under the X and Hint buttons while playing */
 .rows-wrap { position: relative; }
 #unit-bubble { left: 12px; right: 12px; }
+/* Every space in a pop-up reads as 16px, like the button's sides (the owner's request, 2026-10-21): from the top edge to the
+   first line's capitals, from each line's baseline to the next line's capitals or the button, and below the button's edge
+   (or the last line's baseline). The padding and margins are 16px less the room a line box leaves above its capitals and
+   below its baseline: in Atkinson Hyperlegible, 6.3px and 7px at 16px in a 24px line, 7.3px and 8px at 19px in 28px. */
 .bubble {
   position: absolute;
   z-index: 5;
   display: grid;
-  gap: 10px;
-  padding: 14px 16px;
+  padding: 10px 16px 22px;
   border-radius: 12px;
   background: var(--course);
   color: var(--off-white);
@@ -434,8 +438,13 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 .bubble p { position: relative; margin: 0; font-weight: 700; }
 .bubble .btn, .bubble .btn.primary { position: relative; width: 100%; min-height: 48px; font-size: var(--step-1); background: var(--off-white); color: var(--course); text-shadow: none; --lip-color: #c3ccd3; }
 .bubble.is-locked { background: var(--locked-pop); color: var(--locked-ink); text-shadow: none; box-shadow: var(--pop-shadow); }
-.bubble .bubble-name { font-size: var(--step-1); }
+.bubble .bubble-name { font-size: var(--step-1); --lh: 1.45; }
 .bubble .bubble-name + p, .bubble .bubble-unit { font-weight: 400; }
+.bubble > p + p { margin-top: 2px; }
+.bubble > p + .btn { margin-top: 9px; }
+.bubble > .bubble-name + .btn { margin-top: 8px; }
+/* A locked unit's pop-up ends with a line of text, not a button and its 6px edge. */
+.bubble.is-locked { padding-bottom: 9px; }
 @keyframes bubble-in { from { opacity: 0; transform: translateY(-4px); } }
 .lock { display: inline-flex; justify-content: center; width: 28px; color: var(--muted); }
 .lock svg { display: block; width: 16px; height: 16px; }
