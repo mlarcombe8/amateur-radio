@@ -5,7 +5,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Semi+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
-/* Layout: one 720px column like a rig's front panel: name plate and courses, section and unit lists, then the flashcard, with the main action pinned to the bottom of the screen. */
+/* Layout: one column (--column wide at most) like a rig's front panel: name plate and courses, section and unit lists, then the flashcard, with the main action pinned to the bottom of the screen. */
 /* Dark theme only, whatever the device or browser is set to (the owner's choice, 2026-10-18). */
 :root {
   color-scheme: dark;
@@ -56,6 +56,9 @@
   --step-3: 2rem;
 
   --dock-space: calc(96px + env(safe-area-inset-bottom, 0px));
+  /* The page column at its widest: cards, pop-ups, the question panel and its button all take their width from it. 600px
+     since 2026-10-22 (the owner found 720px too wide on a wide screen). */
+  --column: 600px;
 }
 
 /* The colour of the course on screen: Basic unless data-course="advanced" (set on <body> for each screen, and on the Advanced card). */
@@ -85,10 +88,10 @@ body {
 }
 
 .wrap {
-  max-width: 720px;
+  max-width: var(--column);
   margin: 0 auto;
   /* Centred on a whole pixel, so nothing on the page sits half a pixel off in an odd-width window (see .unit-sq). */
-  margin-left: max(0px, round(down, (100% - 720px) / 2, 1px));
+  margin-left: max(0px, round(down, (100% - var(--column)) / 2, 1px));
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 24px 40px;
@@ -817,9 +820,9 @@ legend { padding: 0; margin-bottom: 8px; }
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
-.dock-inner { max-width: 720px; margin: 0 auto; }
+.dock-inner { max-width: var(--column); margin: 0 auto; }
 /* The button lines up with the answer cards: the page column's width, inset by the question card's padding. */
-#dock .dock-inner { max-width: calc(720px - 32px); padding-inline: 22px; }
+#dock .dock-inner { max-width: calc(var(--column) - 32px); padding-inline: 22px; }
 .dock .btn { width: 100%; }
 /* After Check the button takes the answer's own green or red at once.
    (No colour transition: it restarts on every Check and Next, and piled up when cards were answered faster than frames.) */
@@ -1353,6 +1356,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       pos: pos,
       missed: missed,
       firstCorrect: Math.max(0, Math.min(a.firstCorrect | 0, u.ids.length)),
+      secondCorrect: phase === 2 ? Math.max(0, Math.min(a.secondCorrect | 0, missed.length)) : 0,
       choice: Number.isInteger(a.choice) && a.choice >= 0 && a.choice < 4 ? a.choice : null,
       removed: removed
     };
@@ -1557,7 +1561,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     VIEWS.forEach(function (name) { $('view-' + name).hidden = name !== view; });
     // Each course has its own colour: azure for Basic, amber for Advanced.
     document.body.dataset.course = (view === 'play' ? playUnit().course.key : st.c) || 'basic';
-    closePops();
+    closePops(true);
     if (view === 'home') renderHome();
     if (view === 'sections') renderSections(courses[st.c]);
     if (view === 'units') renderUnits(courses[st.c], courses[st.c].sections[st.s]);
@@ -1810,7 +1814,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
 
   function renderUnits(course, sec) {
     $('units-title').textContent = course.name + ', Section ' + sec.n;
-    closeBubble();
+    closeBubble(true);
     var list = $('units-list');
     list.textContent = '';
     var current = currentUnit(course);
@@ -1924,12 +1928,16 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
 
   var bubbleRow = null;
 
-  function closeBubble() {
+  // Closes the unit's pop-up. It fades out, unless the list is being left or redrawn (instant): then every unit pop-up goes
+  // at once, including one still fading, so none shows on the way into or back from a unit.
+  function closeBubble(instant) {
     var bubble = $('unit-bubble');
     var row = bubbleRow;
     bubbleRow = null;
     if (row) row.setAttribute('aria-expanded', 'false');
-    if (bubble) {
+    if (instant) {
+      $('units-wrap').querySelectorAll('.bubble').forEach(function (b) { b.remove(); });
+    } else if (bubble) {
       // It gives up its id at once, so another unit's pop-up can open while it fades.
       bubble.removeAttribute('id');
       fadeOut(bubble, function () { bubble.remove(); });
@@ -1992,7 +2000,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       var resume = !!(ust.attempt && ust.attempt.unit === u.key);
       var start = el('button', 'btn primary', resume ? 'Resume' : 'Start');
       start.type = 'button';
-      start.addEventListener('click', function () { openUnit(u); });
+      start.addEventListener('click', function () { closeBubble(true); openUnit(u); });
       bubble.appendChild(start);
     }
     bubble.addEventListener('click', function (e) { e.stopPropagation(); });
@@ -2012,15 +2020,16 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   $('units-back').addEventListener('click', function () { backTo({ v: 'sections', c: top().c }); });
 
   // ---- Playing a unit ------------------------------------------------------
-  // Questions come in ISED order. A miss comes back once after the last question;
-  // only first-try answers count toward the score.
+  // Questions come in ISED order. A miss comes back once after the last question, as its second chance. A question passes
+  // when its first try is right without a hint, or its second chance is right, hint or not (the owner's choice, 2026-10-22;
+  // until then only first tries counted). The score is the number of passes.
 
   var playSel = null;
 
   function openUnit(u) {
     if (!isUnlocked(u)) return;
     if (!ust.attempt || ust.attempt.unit !== u.key) {
-      ust.attempt = { unit: u.key, fp: u.fp, phase: 1, pos: 0, missed: [], firstCorrect: 0, choice: null, removed: [] };
+      ust.attempt = { unit: u.key, fp: u.fp, phase: 1, pos: 0, missed: [], firstCorrect: 0, secondCorrect: 0, choice: null, removed: [] };
       saveUnits();
     }
     push({ v: 'play' });
@@ -2070,6 +2079,9 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       // A hint on a first try counts as a miss, even when the answer is then right.
       if (a.choice === q.answer && !a.removed.length) a.firstCorrect++;
       else a.missed.push(q.id);
+    } else if (a.choice === q.answer) {
+      // Right on its second chance, it passes; wrong again, it stays a miss.
+      a.secondCorrect++;
     }
     playSel = null;
     saveUnits();
@@ -2109,7 +2121,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     var a = ust.attempt;
     var u = playUnit();
     var prev = scoreOf(u);
-    var score = a.firstCorrect;
+    var score = a.firstCorrect + a.secondCorrect;
     var wasPerfect = isPerfect(u);
     var lockedBefore = u.course.flat.filter(function (x) { return !isUnlocked(x); });
     var sectionDoneBefore = u.section.units.every(isPerfect);
@@ -2528,10 +2540,22 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
 
   // ---- Pop-ups under the X and Hint buttons, and under Reset all progress --------
 
-  function closePops() {
+  // Closes the pop-ups under the X, Hint and Reset buttons: they fade out, or on a change of screen (instant) go at once,
+  // including one still fading.
+  function closePops(instant) {
     ['leave-pop', 'hint-pop', 'reset-pop'].forEach(function (id) {
       var pop = $(id);
-      if (popOpen(pop)) fadeOut(pop, function () { pop.hidden = true; });
+      if (instant) {
+        if (pop.closing) {
+          clearTimeout(pop.closing);
+          pop.closing = null;
+          pop.classList.remove('is-closing');
+          pop.inert = false;
+        }
+        pop.hidden = true;
+      } else if (popOpen(pop)) {
+        fadeOut(pop, function () { pop.hidden = true; });
+      }
     });
     ['play-leave', 'play-hint', 'reset-btn'].forEach(function (id) { $(id).setAttribute('aria-expanded', 'false'); });
   }
