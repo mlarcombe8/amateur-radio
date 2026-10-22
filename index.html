@@ -16,12 +16,12 @@
   --ink: #e5ecf2;
   --muted: #94a4b3;
   --line: #2e3f4e;
-  /* Course colours: neon cyan for Basic, electric orange for Advanced.
+  /* Course colours: azure for Basic, amber for Advanced (the owner's choice, 2026-10-21; amber stands further from the wrong-answer red than orange did).
      The neon fills buttons, cards, selections and pop-ups; their text is off-white, while --on-neon is the dark mark on small neon parts such as the selected letter badge. -line is for bars, focus rings and coloured text. */
-  --cyan: #00e5ff;
-  --cyan-line: #00e5ff;
-  --orange: #ff7a1f;
-  --orange-line: #ff7a1f;
+  --azure: #3da9ff;
+  --azure-line: #3da9ff;
+  --amber: #ff9f1c;
+  --amber-line: #ff9f1c;
   --on-neon: #08131b;
   /* The filled part of progress bars, on the cards and while playing. */
   --lime: #92e033;
@@ -54,8 +54,8 @@
 }
 
 /* The colour of the course on screen: Basic unless data-course="advanced" (set on <body> for each screen, and on the Advanced card). */
-:root { --course: var(--cyan); --course-line: var(--cyan-line); --course-shade: color-mix(in srgb, var(--cyan) 62%, #000); }
-[data-course="advanced"] { --course: var(--orange); --course-line: var(--orange-line); --course-shade: color-mix(in srgb, var(--orange) 62%, #000); }
+:root { --course: var(--azure); --course-line: var(--azure-line); --course-shade: color-mix(in srgb, var(--azure) 62%, #000); }
+[data-course="advanced"] { --course: var(--amber); --course-line: var(--amber-line); --course-shade: color-mix(in srgb, var(--amber) 62%, #000); }
 /* --course-shade: the course colour's lighter shade, used for raised edges under course-coloured things and for progress on course-coloured cards. */
 
 [hidden] { display: none !important; }
@@ -162,7 +162,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 /* Hover colours are for a mouse only: on a phone a tap also counts as hover, and tapping changes no colours (the owner's
    choice, 2026-10-20); pressing down is the feedback. */
 /* Buttons and coloured cards dim on hover by a faint shade over their own colour, which leaves the text at full strength and
-   shows on every colour, cyan included. (The doubled class outranks the colour rules, such as the green or red Next, that reset
+   shows on every colour. (The doubled class outranks the colour rules, such as the green or red Next, that reset
    the background.) */
 @media (hover: hover) and (pointer: fine) { .btn.btn:hover:not(:disabled) { background-image: linear-gradient(rgba(0, 0, 0, .05), rgba(0, 0, 0, .05)); } }
 .btn.primary:disabled { background: var(--seg-off); color: var(--muted); text-shadow: none; opacity: 1; }
@@ -1531,7 +1531,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     }
     view = st.v;
     VIEWS.forEach(function (name) { $('view-' + name).hidden = name !== view; });
-    // Each course has its own colour: cyan for Basic, orange for Advanced.
+    // Each course has its own colour: azure for Basic, amber for Advanced.
     document.body.dataset.course = (view === 'play' ? playUnit().course.key : st.c) || 'basic';
     closePops();
     if (view === 'home') renderHome();
