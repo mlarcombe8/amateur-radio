@@ -152,6 +152,11 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 .course-card, .row, .opt { position: relative; }
 .opt { --lip-size: 4px; }
 .btn:active:not(:disabled), .course-card:active, .row:active:not(:disabled) { --lip-size: 2px; transform: translateY(4px); }
+/* An animated press (the calling loop, the finale's charge and landing) runs on one value, --press (0 to 4px), which both
+   moves the card down and shrinks its edge, so its base can't move. Safari on iOS runs a card's movement on another
+   thread from its edge, so animating the two separately let them drift apart and the base rose mid-press (the owner's
+   report, 2026-10-21). */
+@property --press { syntax: '<length>'; inherits: false; initial-value: 0px; }
 .opt:active:not(:disabled) { --lip-size: 1px; transform: translateY(3px); }
 .btn.primary { background: var(--course); color: var(--off-white); text-shadow: 0 1px 2px rgba(0, 0, 0, .45); --lip-color: var(--course-shade); }
 /* Hover colours are for a mouse only: on a phone a tap also counts as hover, and tapping changes no colours (the owner's
@@ -331,12 +336,12 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
   border-radius: inherit;
   opacity: 0;
 }
-/* Down in 0.12s, held, and back up by 0.41s, at any loop length. */
-.unit-sq.is-calling { animation: call-press .408s; }
+/* Down in 0.12s, held, and back up by 0.41s, at any loop length (see --press). */
+.unit-sq.is-calling { animation: call-press .408s; translate: 0 var(--press); --lip-size: calc(6px - var(--press)); }
 @keyframes call-press {
-  0% { translate: 0 0; box-shadow: 0 6px 0 var(--lip-color), var(--shadow); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
-  29.4%, 47.1% { translate: 0 4px; box-shadow: 0 2px 0 var(--lip-color), var(--shadow); animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
-  100% { translate: 0 0; box-shadow: 0 6px 0 var(--lip-color), var(--shadow); }
+  0% { --press: 0px; animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  29.4%, 47.1% { --press: 4px; animation-timing-function: cubic-bezier(.33, 1, .68, 1); }
+  100% { --press: 0px; }
 }
 /* The ring leaves as the card bottoms out, 0.12s into its press. */
 .waves > span { animation: call-wave .9s cubic-bezier(.2, .6, .4, 1) .12s forwards; }
@@ -510,11 +515,12 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 .chev.is-check svg { position: relative; z-index: 1; }
 .fx-ball.is-pressing { animation: ball-press .15s cubic-bezier(.33, 1, .68, 1) forwards; }
 @keyframes ball-press { to { transform: translateY(calc(var(--d) / 8)) scale(1.25, .75); } }
-/* While the ball charges, the card presses down with it (a tap's press), and lets go as the ball launches. */
-.course-card.is-finale, .row.is-finale { transition: translate .15s cubic-bezier(.33, 1, .68, 1), box-shadow .15s cubic-bezier(.33, 1, .68, 1), background-color .25s ease-out; }
-.course-card.is-charging, .row.is-charging { translate: 0 4px; box-shadow: 0 2px 0 var(--lip-color), var(--shadow); }
+/* While the ball charges, the card presses down with it (a tap's press), and lets go as the ball launches (see --press). */
+.course-card.is-finale, .row.is-finale { transition: --press .15s cubic-bezier(.33, 1, .68, 1), background-color .25s ease-out; }
+.course-card.is-finale:not(:active), .row.is-finale:not(:active) { translate: 0 var(--press); --lip-size: calc(6px - var(--press)); }
+.course-card.is-charging, .row.is-charging { --press: 4px; }
 .course-card.is-landing, .row.is-landing { animation: card-land .48s cubic-bezier(.33, 1, .68, 1); }
-@keyframes card-land { 30%, 45% { translate: 0 4px; box-shadow: 0 2px 0 var(--lip-color), var(--shadow); } }
+@keyframes card-land { 30%, 45% { --press: 4px; } }
 /* A row that has just unlocked: it looks locked (grey, with the grey lock) until its moment, then the lock turns the course
    colour, pops and opens on its left side. Its usual contents stay hidden until the card has turned over. */
 .row-side { position: relative; }
