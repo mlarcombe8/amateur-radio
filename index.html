@@ -2214,11 +2214,12 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 
   // The Exam screen: a card for each course, drawn like a course card (the owner's choices, 2026-10-22 and 2026-10-23). An exam
   // in progress shows a bar of the questions answered: the first answers grow the card to make room, as a course's first
-  // completed unit does (growFx). A submitted exam plays a course's finale (finaleFx) when the Exam screen next shows: the bar
-  // fills, gathers into the ball that becomes the check, and the card turns glossy. A card with an exam submitted, and none
-  // in progress, keeps the check and gloss. Scores aren't shown on the cards.
+  // completed unit does (growFx). A passed exam (70% or more) plays a course's finale (finaleFx) when the Exam screen next
+  // shows: the bar fills, gathers into the ball that becomes the check, and the card turns glossy. A card with an exam
+  // passed, and none in progress, keeps the check and gloss; an exam not passed shows neither, and its bar just goes (the
+  // owner's choice, 2026-10-23). Scores aren't shown on the cards.
   var examBarShown = {};   // per course: whether its card showed a bar when last drawn (undefined before the first time)
-  var examFinale = null;   // { c, from }: the exam just submitted, and how full its bar was
+  var examFinale = null;   // { c, from }: the exam just passed, and how full its bar was
 
   function renderExamHome() {
     closeBubble(true);
@@ -2232,7 +2233,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
       var total = courses[c].flat.length;
       var shown = answered > 0;
       var growing = shown && examBarShown[c] === false && !reduceMotion();
-      var done = !a && list.length > 0;
+      var done = !a && list.some(function (r) { return r.right / r.total >= PASS; });
       // The finale starts from how the card looked when the exam was submitted: its bar as full as the answers, and its arrow.
       var finale = done && !!examFinale && examFinale.c === c && !reduceMotion();
       card.querySelector('.exam-size').textContent = total + '-question mock exam';
@@ -2381,7 +2382,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
     var right = a.ids.filter(function (id, i) { return a.answers[i] === byId[id].answer; }).length;
     est.results[c].push({ at: Date.now(), right: right, total: a.ids.length, ms: Math.round(a.ms) });
     est.results[c] = est.results[c].slice(-RESULTS_KEPT);
-    examFinale = { c: c, from: a.answers.filter(function (x) { return x !== null; }).length / a.ids.length };
+    examFinale = right / a.ids.length >= PASS ? { c: c, from: a.answers.filter(function (x) { return x !== null; }).length / a.ids.length } : null;
     delete est.attempts[c];
     saveExams();
     examReview = false;
