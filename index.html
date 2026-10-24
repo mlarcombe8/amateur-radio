@@ -56,8 +56,8 @@
   --step-3: 2rem;
 
   --dock-space: calc(96px + env(safe-area-inset-bottom, 0px));
-  /* Room under the page for the tab bar (66px) with the same 18px to spare as the dock. */
-  --tabbar-space: calc(84px + env(safe-area-inset-bottom, 0px));
+  /* Room under the page for the tab bar (60px) with the same 18px to spare as the dock. */
+  --tabbar-space: calc(78px + env(safe-area-inset-bottom, 0px));
   /* The page column at its widest: cards, pop-ups, the question panel and its button all take their width from it. 600px
      since 2026-10-22 (the owner found 720px too wide on a wide screen). */
   --column: 600px;
@@ -223,11 +223,6 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 .course-card .chev { grid-column: 2; grid-row: 1 / 3; align-self: center; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; }
 .course-card .chev svg { display: block; width: 20px; height: 20px; }
 .course-card .bar { grid-column: 1 / -1; grid-row: 3; }
-/* Exam cards: a third line for an exam in progress or the best and last scores; without it the card is a course card's size. */
-.exam-card .exam-stat { grid-row: 3; }
-.exam-card .chev { grid-row: 1 / 4; }
-.exam-card .exam-stat:empty { display: none; }
-.exam-card:has(.exam-stat:empty) .chev { grid-row: 1 / 3; }
 .chev { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--course-shade); color: var(--ink); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .55); }
 .chev svg { display: block; width: 16px; height: 16px; }
 
@@ -401,9 +396,9 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 
 /* Pop-ups: floating over the unit list, or under the X and Hint buttons while playing */
 .rows-wrap { position: relative; }
-/* Pop-ups line up with the edges of the list or panel they float over. (A class, not the id: a closing unit pop-up gives up
-   its id, and must stay where it is while it fades.) */
-.unit-pop { left: 0; right: 0; }
+/* Every pop-up is 300px wide, or the list or panel's width if that is narrower (the owner's choice, 2026-10-23: full-width
+   unit and exam pop-ups were far too wide on a wide screen). placeAcross centres it under what it points at, kept within its
+   list or panel. */
 /* Every space in a pop-up reads as 16px, like the button's sides (the owner's request, 2026-10-21): from the top edge to the
    first line's capitals, from each line's baseline to the next line's capitals or the button, and below the button's edge
    (or the last line's baseline). The padding and margins are 16px less the room a line box leaves above its capitals and
@@ -412,6 +407,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
   position: absolute;
   z-index: 5;
   display: grid;
+  width: min(300px, 100%);
   padding: 10px 16px 22px;
   border-radius: 12px;
   background: var(--course);
@@ -430,7 +426,6 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
   background: inherit;
   transform: rotate(45deg);
 }
-.bubble.is-above::before { top: auto; bottom: -6px; }
 .bubble :focus-visible { outline-color: var(--on-neon); }
 .bubble p { position: relative; margin: 0; font-weight: 700; }
 .bubble .btn, .bubble .btn.primary { position: relative; width: 100%; background: var(--off-white); color: var(--course); text-shadow: none; --lip-color: var(--off-white-edge); }
@@ -440,6 +435,8 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 .bubble > p + p { margin-top: 2px; }
 .bubble > p + .btn { margin-top: 9px; }
 .bubble > .bubble-name + .btn { margin-top: 8px; }
+/* A pop-up that is only its button (the Exam cards'): 16px above it too. */
+.bubble > .btn:first-child { margin-top: 6px; }
 /* A locked unit's pop-up ends with a line of text, not a button and its 6px edge. */
 .bubble.is-locked { padding-bottom: 9px; }
 @keyframes bubble-in { from { opacity: 0; transform: translateY(-4px); } }
@@ -665,9 +662,6 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 .icon-btn.hint-btn[aria-expanded="true"], .icon-btn.grid-btn[aria-expanded="true"] { color: var(--course-line); }
 @media (hover: hover) and (pointer: fine) { .icon-btn.hint-btn[aria-expanded="true"]:hover, .icon-btn.grid-btn[aria-expanded="true"]:hover { color: color-mix(in srgb, var(--course-line) 95%, #000); } }
 .hint-btn:disabled { opacity: .4; cursor: default; }
-.play-pop { width: min(300px, 100%); }
-#leave-pop { left: 0; }
-#hint-pop { right: 0; }
 
 /* Settings gear at the right of the home heading: grey, brightening on hover like the X and the hint.
    Its negative margins keep the heading row the title's height, so the course cards don't move. */
@@ -682,7 +676,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 .setting > .setting-status { color: var(--ink); font-weight: 700; }
 .setting > .setting-status:empty { margin-top: -8px; }
 /* Red, like the button that opens it. */
-#reset-pop { left: 0; background: var(--bad); }
+#reset-pop { background: var(--bad); }
 #reset-pop .btn { color: var(--bad); }
 .unit-bar { height: 10px; border-radius: 5px; background: var(--course-shade); overflow: hidden; }
 .unit-bar span { display: block; height: 100%; border-radius: 5px; background: var(--lime); }
@@ -792,7 +786,8 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 .dock .btn[data-tone="good"] { background: var(--good); --lip-color: color-mix(in srgb, var(--good) 62%, #000); }
 .dock .btn[data-tone="bad"] { background: var(--bad); --lip-color: color-mix(in srgb, var(--bad) 62%, #000); }
 
-/* Tab bar: Learn and Exam (the owner's choice, 2026-10-22), under the lists, Settings and the Exam screen. It's hidden while
+/* Tab bar: Learn and Exam, as icons only (the owner's choices, 2026-10-22 and 2026-10-23; the screens' titles name them), under
+   the lists, Settings and the Exam screen. It's hidden while
    answering, where the dock takes the bottom of the screen. Each tab is half the column, rounded down to an even number of
    pixels, so its 24px icon centres on a whole pixel. */
 .tabbar {
@@ -810,13 +805,11 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 .tab {
   appearance: none;
   flex: none; width: 50%; width: round(down, 50%, 2px);
-  display: grid; justify-items: center; align-content: center; gap: 2px;
-  min-height: 54px; padding: 4px 0;
+  display: grid; place-items: center;
+  min-height: 48px; padding: 0;
   border: 0; border-radius: 10px;
   background: none;
   color: var(--muted);
-  font-family: var(--font-display); font-weight: 600; font-size: var(--step--1);
-  text-transform: uppercase; letter-spacing: .1em;
   cursor: pointer;
 }
 .tab svg { display: block; width: 24px; height: 24px; }
@@ -861,7 +854,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 
   <section class="view" id="view-home" hidden aria-labelledby="home-title">
     <header class="plate">
-      <h1 id="home-title" tabindex="-1">Go HAM</h1>
+      <h1 id="home-title" tabindex="-1">Learn</h1>
       <button class="icon-btn settings-btn" id="to-settings" type="button" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.07 4.55 10.32 1.94 13.68 1.94 13.93 4.55 15.91 5.37 17.92 3.7 20.3 6.08 18.63 8.09 19.45 10.07 22.06 10.32 22.06 13.68 19.45 13.93 18.63 15.91 20.3 17.92 17.92 20.3 15.91 18.63 13.93 19.45 13.68 22.06 10.32 22.06 10.07 19.45 8.09 18.63 6.08 20.3 3.7 17.92 5.37 15.91 4.55 13.93 1.94 13.68 1.94 10.32 4.55 10.07 5.37 8.09 3.7 6.08 6.08 3.7 8.09 5.37ZM8.7 12a3.3 3.3 0 1 0 6.6 0a3.3 3.3 0 1 0 -6.6 0Z" fill="currentColor" fill-rule="evenodd" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></button>
     </header>
     <div class="courses">
@@ -903,7 +896,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
   <section class="view" id="view-settings" hidden aria-labelledby="settings-title">
     <div class="view-head">
       <div class="title-row">
-        <button class="back-btn" id="settings-back" type="button" aria-label="Back to courses" title="Back to courses"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="back-btn" id="settings-back" type="button" aria-label="Back" title="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <h2 class="view-title" id="settings-title" tabindex="-1">Settings</h2>
       </div>
     </div>
@@ -912,7 +905,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
       <p>Clear every completed unit, any unit in progress and your mock exams, in both Basic and Advanced. You'll start again from the first unit of each course.</p>
       <button class="btn primary danger" id="reset-btn" type="button">Reset all progress</button>
       <p class="setting-status" id="reset-status" role="status" aria-live="polite"></p>
-      <div class="bubble play-pop" id="reset-pop" hidden>
+      <div class="bubble" id="reset-pop" hidden>
         <p>Reset all progress? This can't be undone.</p>
         <button class="btn" id="reset-yes" type="button">Reset progress</button>
       </div>
@@ -925,11 +918,11 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
       <div class="unit-bar" id="play-bar" role="progressbar" aria-label="Unit progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
       <button class="icon-btn hint-btn" id="play-hint" type="button" aria-label="Hint" title="Hint"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.2a4.6 4.6 0 0 0-2.7 8.3c.4.3.7.8.7 1.3v.6h4v-.6c0-.5.3-1 .7-1.3A4.6 4.6 0 0 0 8 1.2z" fill="currentColor"/><rect x="6" y="12.4" width="4" height="1.3" rx=".65" fill="currentColor"/><rect x="6.6" y="14.2" width="2.8" height="1.2" rx=".6" fill="currentColor"/></svg></button>
     </div>
-    <div class="bubble play-pop" id="leave-pop" hidden>
+    <div class="bubble" id="leave-pop" hidden>
       <p>Leave this unit? This attempt won't be scored.</p>
       <button class="btn" id="leave-yes" type="button">Leave unit</button>
     </div>
-    <div class="bubble play-pop" id="hint-pop" hidden>
+    <div class="bubble" id="hint-pop" hidden>
       <p>Are you sure you want to use a hint?</p>
       <button class="btn" id="hint-yes" type="button">Use hint</button>
     </div>
@@ -941,21 +934,22 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 
   <section class="view" id="view-exam" hidden aria-labelledby="exam-title">
     <header class="plate">
-      <h1 id="exam-title" tabindex="-1">Go HAM</h1>
+      <h1 id="exam-title" tabindex="-1">Exam</h1>
+      <button class="icon-btn settings-btn" id="exam-settings" type="button" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.07 4.55 10.32 1.94 13.68 1.94 13.93 4.55 15.91 5.37 17.92 3.7 20.3 6.08 18.63 8.09 19.45 10.07 22.06 10.32 22.06 13.68 19.45 13.93 18.63 15.91 20.3 17.92 17.92 20.3 15.91 18.63 13.93 19.45 13.68 22.06 10.32 22.06 10.07 19.45 8.09 18.63 6.08 20.3 3.7 17.92 5.37 15.91 4.55 13.93 1.94 13.68 1.94 10.32 4.55 10.07 5.37 8.09 3.7 6.08 6.08 3.7 8.09 5.37ZM8.7 12a3.3 3.3 0 1 0 6.6 0a3.3 3.3 0 1 0 -6.6 0Z" fill="currentColor" fill-rule="evenodd" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></button>
     </header>
     <div class="rows-wrap" id="exam-wrap">
       <div class="courses">
         <button class="course-card exam-card" id="exam-basic" type="button" data-course="basic">
           <span class="course-name">Basic</span>
-          <span class="course-sub">Mock exam</span>
-          <span class="course-sub exam-stat"></span>
+          <span class="course-sub exam-size">100-question mock exam</span>
           <span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 4.5 16.5 12 9 19.5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="bar" role="img"><span></span></span>
         </button>
         <button class="course-card exam-card" id="exam-advanced" type="button" data-course="advanced">
           <span class="course-name">Advanced</span>
-          <span class="course-sub">Mock exam</span>
-          <span class="course-sub exam-stat"></span>
+          <span class="course-sub exam-size">50-question mock exam</span>
           <span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 4.5 16.5 12 9 19.5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="bar" role="img"><span></span></span>
         </button>
       </div>
     </div>
@@ -967,7 +961,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
       <div class="unit-bar" id="exam-bar" role="progressbar" aria-label="Questions answered" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
       <button class="icon-btn grid-btn" id="exam-grid-btn" type="button" aria-label="All questions" title="All questions" aria-expanded="false"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="2.5" width="6" height="6" rx="1.5" fill="currentColor"/><rect x="11.5" y="2.5" width="6" height="6" rx="1.5" fill="currentColor"/><rect x="2.5" y="11.5" width="6" height="6" rx="1.5" fill="currentColor"/><rect x="11.5" y="11.5" width="6" height="6" rx="1.5" fill="currentColor"/></svg></button>
     </div>
-    <div class="bubble play-pop" id="exam-leave-pop" hidden>
+    <div class="bubble" id="exam-leave-pop" hidden>
       <p>Leave the exam? Your answers and time are saved.</p>
       <button class="btn" id="exam-leave-yes" type="button">Leave exam</button>
     </div>
@@ -987,6 +981,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
     <h2 class="result-pct" id="result-pct" tabindex="-1">0%</h2>
     <p class="result-verdict" id="result-verdict"></p>
     <p class="result-line" id="result-line"></p>
+    <p class="result-line" id="result-history" hidden></p>
   </section>
 </div>
 
@@ -999,8 +994,8 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 
 <nav class="tabbar" id="tabbar" aria-label="Main" hidden>
   <div class="tabbar-inner">
-    <button class="tab" id="tab-learn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C9.6 4.9 6.4 4.6 3.5 5.6v13c2.9-1 6.1-.7 8.5.9 2.4-1.6 5.6-1.9 8.5-.9v-13c-2.9-1-6.1-.7-8.5.9Zm0 0v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg><span>Learn</span></button>
-    <button class="tab" id="tab-exam" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 4.5H7A2.5 2.5 0 0 0 4.5 7v12A2.5 2.5 0 0 0 7 21.5h10a2.5 2.5 0 0 0 2.5-2.5V7A2.5 2.5 0 0 0 17 4.5h-1.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><rect x="8.5" y="2.5" width="7" height="4" rx="1.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="m8.5 13.5 2.4 2.4 4.6-4.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Exam</span></button>
+    <button class="tab" id="tab-learn" type="button" aria-label="Learn" title="Learn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C9.6 4.9 6.4 4.6 3.5 5.6v13c2.9-1 6.1-.7 8.5.9 2.4-1.6 5.6-1.9 8.5-.9v-13c-2.9-1-6.1-.7-8.5.9Zm0 0v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg></button>
+    <button class="tab" id="tab-exam" type="button" aria-label="Exam" title="Exam"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 4.5H7A2.5 2.5 0 0 0 4.5 7v12A2.5 2.5 0 0 0 7 21.5h10a2.5 2.5 0 0 0 2.5-2.5V7A2.5 2.5 0 0 0 17 4.5h-1.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><rect x="8.5" y="2.5" width="7" height="4" rx="1.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="m8.5 13.5 2.4 2.4 4.6-4.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
 </nav>
 
@@ -1387,6 +1382,12 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
   // The Exam screens sit on top of the Learn screen they were opened from, so the Learn tab, or the phone's back gesture,
   // returns to it.
   function tabOf(v) { return v === 'exam' || v === 'exam-play' || v === 'exam-result' ? 'exam' : 'learn'; }
+  // Settings belongs to whichever tab opened it, so the tab is that of the first Exam screen in the stack, if any.
+  function examIndex() {
+    for (var k = 0; k < nav.length; k++) if (tabOf(nav[k].v) === 'exam') return k;
+    return -1;
+  }
+  function currentTab() { return examIndex() >= 0 ? 'exam' : 'learn'; }
 
   function syncHistory(method) {
     if (!historyOK) return;
@@ -1479,7 +1480,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
     $('tabbar').hidden = !tabbed;
     document.body.classList.toggle('has-tabbar', tabbed);
     ['learn', 'exam'].forEach(function (t) {
-      if (tabOf(view) === t) $('tab-' + t).setAttribute('aria-current', 'page');
+      if (currentTab() === t) $('tab-' + t).setAttribute('aria-current', 'page');
       else $('tab-' + t).removeAttribute('aria-current');
     });
     // Each course has its own colour: azure for Basic, amber for Advanced.
@@ -1556,17 +1557,17 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
   // ---- Tab bar ---------------------------------------------------------------
 
   $('tab-learn').addEventListener('click', function () {
-    if (tabOf(view) === 'exam') {
-      // Back to the Learn screen the Exam tab was opened from.
-      var k = nav.length - 1;
-      while (k >= 0 && tabOf(nav[k].v) === 'exam') k--;
-      if (k >= 0) popTo(k); else replace({ v: 'home' });
-    } else {
-      // Already on Learn: back to Courses.
-      popTo(0);
-    }
+    var x = examIndex();
+    // From Exam, back to the Learn screen it was opened from; on Learn already, back to Courses.
+    if (x > 0) popTo(x - 1);
+    else if (x === 0) replace({ v: 'home' });
+    else popTo(0);
   });
-  $('tab-exam').addEventListener('click', function () { if (tabOf(view) !== 'exam') push({ v: 'exam' }); });
+  $('tab-exam').addEventListener('click', function () {
+    var x = examIndex();
+    // Into Exam; on Exam already (Settings opened from it), back to the Exam screen.
+    if (x < 0) push({ v: 'exam' }); else popTo(x);
+  });
 
   // ---- Shared answer card --------------------------------------------------
 
@@ -1643,6 +1644,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
   $('course-basic').addEventListener('click', function () { push({ v: 'sections', c: 'basic' }); });
   $('course-advanced').addEventListener('click', function () { push({ v: 'sections', c: 'advanced' }); });
   $('to-settings').addEventListener('click', function () { push({ v: 'settings' }); });
+  $('exam-settings').addEventListener('click', function () { push({ v: 'settings' }); });
 
   // ---- Settings ------------------------------------------------------------
 
@@ -1650,7 +1652,8 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
     $('reset-status').textContent = '';
   }
 
-  $('settings-back').addEventListener('click', function () { backTo({ v: 'home' }); });
+  // Back to the screen Settings was opened from: Learn or Exam.
+  $('settings-back').addEventListener('click', function () { if (nav.length > 1) popTo(nav.length - 2); else replace({ v: 'home' }); });
 
   $('reset-btn').addEventListener('click', function (e) {
     e.stopPropagation();
@@ -1759,6 +1762,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
   function renderUnits(course, sec) {
     $('units-title').textContent = course.name + ', Section ' + sec.n;
     closeBubble(true);
+    $('units-wrap').style.paddingBottom = '';
     var list = $('units-list');
     list.textContent = '';
     var current = currentUnit(course);
@@ -1910,22 +1914,33 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
   // counted from the bottom of its raised edge (EDGE, the 6px --lip-size of cards and buttons) when the pop-up is below.
   var POP_GAP = 10, EDGE = 6;
 
-  // Floats just below its unit, over the units that follow, so nothing in the list moves.
-  // Near the end of the list, where there's no room below, it opens above the unit instead. Its pointer aims at the unit.
-  // Places the open pop-up under its unit or exam card (above it near the end of a list), pointing at it.
+  // Places the open pop-up just below its unit or exam card, over what follows, so nothing in the list moves. It always opens
+  // below (the owner's choice, 2026-10-23), even at the end of a list, where it hangs past the last card.
   function placeBubble() {
     var bubble = $('unit-bubble');
     if (!bubble || !bubbleRow) return;
+    bubble.style.top = (bubbleRow.offsetTop + bubbleRow.offsetHeight + EDGE + POP_GAP) + 'px';
+    placeAcross(bubble, bubbleRow);
+    // Hanging past the last card, it needs room below the list so it can scroll clear of the tab bar: the list's wrap grows
+    // that much under its last card, so no card moves. The room stays when the pop-up closes, as taking it away could move
+    // the list; drawing the list again resets it.
     var wrap = bubble.parentNode;
-    var below = bubbleRow.offsetTop + bubbleRow.offsetHeight + EDGE + POP_GAP;
-    var above = bubbleRow.offsetTop - bubble.offsetHeight - POP_GAP;
-    var flip = below + bubble.offsetHeight > wrap.offsetHeight && above >= 0;
-    bubble.classList.toggle('is-above', flip);
-    bubble.style.top = (flip ? above : below) + 'px';
-    var unitBox = bubbleRow.getBoundingClientRect();
-    var wrapBox = wrap.getBoundingClientRect();
-    var caret = Math.round(unitBox.left + unitBox.width / 2 - wrapBox.left - bubble.offsetLeft - 7);
-    bubble.style.setProperty('--caret', Math.min(Math.max(caret, CARET_MIN), bubble.offsetWidth - CARET_MIN - 14) + 'px');
+    var room = parseFloat(wrap.style.paddingBottom) || 0;
+    var need = bubble.offsetTop + bubble.offsetHeight - (wrap.offsetHeight - room);
+    if (need > room) wrap.style.paddingBottom = Math.ceil(need) + 'px';
+  }
+
+  // Across, every pop-up is centred under what it points at, but kept within its list or panel, on a whole pixel. Its
+  // pointer aims at the target's centre, and stays at least CARET_MIN from either side.
+  function placeAcross(pop, target) {
+    var area = pop.offsetParent;
+    var t = target.getBoundingClientRect();
+    var centre = t.left + t.width / 2 - area.getBoundingClientRect().left;
+    var w = pop.offsetWidth;
+    var left = Math.round(Math.min(Math.max(centre - w / 2, 0), area.clientWidth - w));
+    pop.style.left = left + 'px';
+    var caret = Math.round(centre - left - 7);
+    pop.style.setProperty('--caret', Math.min(Math.max(caret, CARET_MIN), w - CARET_MIN - 14) + 'px');
   }
 
   window.addEventListener('resize', placeBubble);
@@ -2197,20 +2212,48 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
   });
   window.addEventListener('pagehide', stopExamClock);
 
-  // The Exam screen: a card for each course, showing an exam in progress or the best and last scores.
+  // The Exam screen: a card for each course, drawn like a course card (the owner's choices, 2026-10-22 and 2026-10-23). An exam
+  // in progress shows a bar of the questions answered: the first answers grow the card to make room, as a course's first
+  // completed unit does (growFx). A submitted exam plays a course's finale (finaleFx) when the Exam screen next shows: the bar
+  // fills, gathers into the ball that becomes the check, and the card turns glossy. A card with an exam submitted, and none
+  // in progress, keeps the check and gloss. Scores aren't shown on the cards.
+  var examBarShown = {};   // per course: whether its card showed a bar when last drawn (undefined before the first time)
+  var examFinale = null;   // { c, from }: the exam just submitted, and how full its bar was
+
   function renderExamHome() {
     closeBubble(true);
+    $('exam-wrap').style.paddingBottom = '';
+    $('exam-basic').parentNode.style.paddingBottom = '';
     ['basic', 'advanced'].forEach(function (c) {
+      var card = $('exam-' + c);
       var a = est.attempts[c];
       var list = est.results[c];
-      var text = '';
-      if (a) {
-        text = 'In progress' + DOT + clockText(a.ms);
-      } else if (list.length) {
-        var best = list.reduce(function (b, r) { return r.right / r.total > b.right / b.total ? r : b; });
-        text = 'Best ' + examPct(best) + DOT + 'Last ' + examPct(list[list.length - 1]);
+      var answered = a ? a.answers.filter(function (x) { return x !== null; }).length : 0;
+      var total = courses[c].flat.length;
+      var shown = answered > 0;
+      var growing = shown && examBarShown[c] === false && !reduceMotion();
+      var done = !a && list.length > 0;
+      // The finale starts from how the card looked when the exam was submitted: its bar as full as the answers, and its arrow.
+      var finale = done && !!examFinale && examFinale.c === c && !reduceMotion();
+      card.querySelector('.exam-size').textContent = total + '-question mock exam';
+      card.classList.toggle('is-unstarted', finale ? false : !shown || growing);
+      card.classList.toggle('is-done', done);
+      card.classList.toggle('is-finale', finale);
+      card.classList.toggle('is-completing', finale);
+      setDisc(card.querySelector('.chev'), done && !finale);
+      var bar = card.querySelector('.bar');
+      bar.setAttribute('aria-label', answered + ' of ' + total + ' answered');
+      setFill(bar.firstElementChild, finale ? examFinale.from : growing ? 0 : answered / total);
+      if (growing) {
+        growFx(card, answered / total, 200);
+        showFx([card]);
       }
-      $('exam-' + c).querySelector('.exam-stat').textContent = text;
+      if (finale) {
+        examFinale = null;
+        finaleFx(card, 200);
+        showFx([card]);
+      }
+      examBarShown[c] = shown;
     });
   }
 
@@ -2223,18 +2266,10 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 
   function examPop(c) {
     var a = est.attempts[c];
-    var total = courses[c].flat.length;
     var bubble = el('div', 'bubble unit-pop');
-    // In its own course's colour, like the card it points at (the Exam screen itself has no course).
+    // In its own course's colour, like the card it points at (the Exam screen itself has no course). It holds only its Start
+    // or Resume button (the owner's choice, 2026-10-22): the card says the rest.
     bubble.dataset.course = c;
-    if (a) {
-      var answered = a.answers.filter(function (x) { return x !== null; }).length;
-      bubble.appendChild(el('p', 'bubble-unit', 'In progress' + DOT + clockText(a.ms)));
-      bubble.appendChild(el('p', 'bubble-name', answered + ' of ' + total + ' answered'));
-    } else {
-      bubble.appendChild(el('p', 'bubble-unit', c === 'basic' ? 'Pass at 70%, Honours at 80%' : 'Pass at 70%'));
-      bubble.appendChild(el('p', 'bubble-name', total + '-question mock exam'));
-    }
     var start = el('button', 'btn primary', a ? 'Resume' : 'Start');
     start.type = 'button';
     start.addEventListener('click', function () {
@@ -2346,6 +2381,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
     var right = a.ids.filter(function (id, i) { return a.answers[i] === byId[id].answer; }).length;
     est.results[c].push({ at: Date.now(), right: right, total: a.ids.length, ms: Math.round(a.ms) });
     est.results[c] = est.results[c].slice(-RESULTS_KEPT);
+    examFinale = { c: c, from: a.answers.filter(function (x) { return x !== null; }).length / a.ids.length };
     delete est.attempts[c];
     saveExams();
     examReview = false;
@@ -2363,6 +2399,14 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
     $('result-verdict').textContent = verdict;
     $('result-verdict').classList.toggle('is-pass', verdict !== 'Not passed yet');
     $('result-line').textContent = r.right + ' of ' + r.total + ' right' + DOT + clockText(r.ms);
+    // Under it, the best score of all this course's mock exams (this one included) and the one before this (the owner's
+    // choice, 2026-10-23: the scores moved here from the Exam cards). Nothing for a first exam.
+    var prev = list[list.length - 2];
+    $('result-history').hidden = !prev;
+    if (prev) {
+      var best = list.reduce(function (b, x) { return x.right / x.total > b.right / b.total ? x : b; });
+      $('result-history').textContent = 'Best ' + examPct(best) + DOT + 'Last ' + examPct(prev);
+    }
   }
 
   $('exam-leave').addEventListener('click', function (e) {
@@ -2788,8 +2832,7 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
     ['play-leave', 'play-hint', 'reset-btn', 'exam-leave'].forEach(function (id) { $(id).setAttribute('aria-expanded', 'false'); });
   }
 
-  // Floats just under the button that opened it, pointing at that button. For a button near the side of the screen (the X,
-  // the hint), the pop-up moves over so its pointer stays clear of the rounded corner.
+  // Floats just under the button that opened it, centred on it within its panel (placeAcross), pointing at it.
   function togglePop(id, btn) {
     var pop = $(id);
     var wasOpen = popOpen(pop);
@@ -2803,17 +2846,8 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
       pop.inert = false;
     }
     pop.hidden = false;
-    pop.style.left = '';
-    pop.style.right = '';
     pop.style.top = (btn.offsetTop + btn.offsetHeight + (btn.classList.contains('btn') ? EDGE : 0) + POP_GAP) + 'px';
-    var caret = btn.offsetLeft + btn.offsetWidth / 2 - pop.offsetLeft - 7;
-    var shift = Math.max(0, CARET_MIN - caret) - Math.max(0, caret - (pop.offsetWidth - CARET_MIN - 14));
-    if (shift) {
-      pop.style.left = (pop.offsetLeft - shift) + 'px';
-      pop.style.right = 'auto';
-      caret += shift;
-    }
-    pop.style.setProperty('--caret', caret + 'px');
+    placeAcross(pop, btn);
     btn.setAttribute('aria-expanded', 'true');
     pop.querySelector('button').focus({ preventScroll: true });
   }
