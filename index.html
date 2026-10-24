@@ -56,6 +56,8 @@
   --step-3: 2rem;
 
   --dock-space: calc(96px + env(safe-area-inset-bottom, 0px));
+  /* Room under the page for the tab bar (66px) with the same 18px to spare as the dock. */
+  --tabbar-space: calc(84px + env(safe-area-inset-bottom, 0px));
   /* The page column at its widest: cards, pop-ups, the question panel and its button all take their width from it. 600px
      since 2026-10-22 (the owner found 720px too wide on a wide screen). */
   --column: 600px;
@@ -77,6 +79,7 @@
 :root { --lh: 1.5; }
 * { line-height: calc(var(--lh) * 1em); line-height: round(nearest, calc(var(--lh) * 1em), 1px); }
 html { scroll-padding-bottom: var(--dock-space); }
+html:has(body.has-tabbar) { scroll-padding-bottom: var(--tabbar-space); }
 
 body {
   margin: 0;
@@ -97,6 +100,7 @@ body {
   padding-block: 24px 40px;
 }
 body.has-dock .wrap { padding-bottom: var(--dock-space); }
+body.has-tabbar .wrap { padding-bottom: var(--tabbar-space); }
 
 .view { display: grid; gap: 20px; min-width: 0; }
 
@@ -104,7 +108,7 @@ body.has-dock .wrap { padding-bottom: var(--dock-space); }
 button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(nearest, calc(var(--lh) * 1em), 1px); color: inherit; }
 :focus-visible { outline: 3px solid var(--course-line); outline-offset: 2px; }
 /* Focus rings are for keyboard use: after a tap or click (including the app's own focus moves that follow), none is drawn. */
-.is-pointer :focus-visible, .is-pointer .choice input:focus-visible + span { outline: none; }
+.is-pointer :focus-visible { outline: none; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 /* Name plate */
@@ -119,26 +123,6 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
   --lh: 1.05;
   text-wrap: balance;
 }
-.plate p { margin: 0; color: var(--muted); font-size: var(--step--1); }
-
-.eyebrow {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: var(--step--1);
-  text-transform: uppercase;
-  letter-spacing: .1em;
-  color: var(--muted);
-}
-
-.confirm {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
-  padding: 10px 12px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--surface);
-}
-.confirm p { margin: 0; flex: 1 1 220px; min-width: 0; }
-.confirm .actions { display: flex; gap: 8px; }
 
 /* Buttons */
 .btn {
@@ -178,19 +162,10 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 .btn.primary:disabled { background: var(--seg-off); color: var(--muted); text-shadow: none; opacity: 1; }
 /* Red, with off-white text like the red Next button. */
 .btn.danger { background: var(--bad); color: var(--off-white); text-shadow: 0 1px 2px rgba(0, 0, 0, .45); --lip-color: color-mix(in srgb, var(--bad) 62%, #000); }
-.btn.small { min-height: 36px; padding: 6px 12px; font-size: var(--step--1); }
 /* The dock, pop-up and Settings buttons are one size: 54px tall, with a 19px label in a 24px line box, which centres in it on
    a whole pixel. */
 .dock .btn, .bubble .btn, .setting > .btn { display: grid; place-items: center; min-height: 54px; font-size: var(--step-1); --lh: 1.25; }
 .btn:disabled { opacity: .4; cursor: default; box-shadow: none; }
-.link-btn {
-  appearance: none; border: 0; background: none; padding: 6px 0;
-  color: var(--muted); font-size: var(--step--1); font-weight: 700;
-  text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
-}
-@media (hover: hover) and (pointer: fine) { .link-btn:hover:not(:disabled) { color: var(--ink); } }
-.link-btn:disabled { opacity: .4; text-decoration: none; cursor: default; }
-.nav-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
 /* Panels */
 .panel {
@@ -248,9 +223,13 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 .course-card .chev { grid-column: 2; grid-row: 1 / 3; align-self: center; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; }
 .course-card .chev svg { display: block; width: 20px; height: 20px; }
 .course-card .bar { grid-column: 1 / -1; grid-row: 3; }
+/* Exam cards: a third line for an exam in progress or the best and last scores; without it the card is a course card's size. */
+.exam-card .exam-stat { grid-row: 3; }
+.exam-card .chev { grid-row: 1 / 4; }
+.exam-card .exam-stat:empty { display: none; }
+.exam-card:has(.exam-stat:empty) .chev { grid-row: 1 / 3; }
 .chev { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--course-shade); color: var(--ink); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .55); }
 .chev svg { display: block; width: 16px; height: 16px; }
-.secondary { display: flex; justify-content: center; }
 
 /* Section and unit lists */
 .view-head { display: grid; gap: 6px; }
@@ -663,9 +642,6 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 /* Contents: hidden while the back faces you, from the first edge-on moment to the second. */
 @keyframes card-back { 0%, 36.5% { visibility: visible; } 36.6%, 61.5% { visibility: hidden; } 61.6%, to { visibility: visible; } }
 
-/* Flashcard */
-.card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-
 /* Top of the play screen: leave (X), progress, hint */
 #view-play { position: relative; }
 .play-top { display: flex; align-items: center; gap: 12px; }
@@ -683,11 +659,11 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 }
 @media (hover: hover) and (pointer: fine) { .icon-btn:hover:not(:disabled) { color: var(--ink); } }
 .icon-btn svg { display: block; width: 22px; height: 22px; }
-.hint-btn { margin-left: 0; margin-right: -7px; color: var(--muted); }
+.hint-btn, .grid-btn { margin-left: 0; margin-right: -7px; color: var(--muted); }
 /* The hint is grey and brightens on hover like the X; it takes the course colour only while selected (its pop-up open),
    and then dims 5% on hover, like the coloured cards. */
-.icon-btn.hint-btn[aria-expanded="true"] { color: var(--course-line); }
-@media (hover: hover) and (pointer: fine) { .icon-btn.hint-btn[aria-expanded="true"]:hover { color: color-mix(in srgb, var(--course-line) 95%, #000); } }
+.icon-btn.hint-btn[aria-expanded="true"], .icon-btn.grid-btn[aria-expanded="true"] { color: var(--course-line); }
+@media (hover: hover) and (pointer: fine) { .icon-btn.hint-btn[aria-expanded="true"]:hover, .icon-btn.grid-btn[aria-expanded="true"]:hover { color: color-mix(in srgb, var(--course-line) 95%, #000); } }
 .hint-btn:disabled { opacity: .4; cursor: default; }
 .play-pop { width: min(300px, 100%); }
 #leave-pop { left: 0; }
@@ -708,20 +684,34 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 /* Red, like the button that opens it. */
 #reset-pop { left: 0; background: var(--bad); }
 #reset-pop .btn { color: var(--bad); }
-.tag {
-  font-family: var(--font-display); font-weight: 600; font-size: var(--step--1);
-  text-transform: uppercase; letter-spacing: .1em;
-  padding: 2px 8px; border-radius: 4px;
-  background: var(--ink); color: var(--surface);
-}
-
-.progress { display: grid; gap: 6px; }
-.progress-text { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: var(--step--1); color: var(--muted); font-variant-numeric: tabular-nums; }
-.progress-text strong { color: var(--ink); }
-
 .unit-bar { height: 10px; border-radius: 5px; background: var(--course-shade); overflow: hidden; }
 .unit-bar span { display: block; height: 100%; border-radius: 5px; background: var(--lime); }
 .phase-label { margin: -8px 0 0; font-family: var(--font-display); font-weight: 600; font-size: var(--step--1); text-transform: uppercase; letter-spacing: .1em; color: var(--course-line); }
+
+/* Mock exam: the question's number sits under the top row like "Second chance". No clock shows during the exam (the owner's
+   choice, 2026-10-22), though the time is counted for the result. */
+.exam-q { display: grid; gap: inherit; }
+.exam-left { margin: 0; color: var(--muted); }
+.exam-left:focus { outline: none; }
+/* Every question as a numbered square: recessed until answered, then the course colour; the current one has an off-white
+   ring. Fixed 44px squares, so every square sits on whole pixels. */
+.exam-grid { display: grid; grid-template-columns: repeat(auto-fill, 44px); gap: 8px; }
+.exam-num {
+  appearance: none; display: grid; place-items: center;
+  width: 44px; height: 44px; padding: 0; border: 0; border-radius: 10px;
+  background: var(--seg-off); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .55);
+  color: var(--muted); font-family: var(--font-mono); font-weight: 500; font-size: var(--step-0); font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.exam-num.is-answered { background: var(--course); color: var(--off-white); text-shadow: 0 1px 2px rgba(0, 0, 0, .45); box-shadow: none; }
+.exam-num.is-here { box-shadow: inset 0 0 0 3px var(--off-white); }
+@media (hover: hover) and (pointer: fine) { .exam-num:hover { background-image: linear-gradient(rgba(0, 0, 0, .05), rgba(0, 0, 0, .05)); } }
+/* Results: the score, whether it passes, and the right answers and time. */
+#result-course { margin-top: 0; }
+.result-pct { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 3rem; --lh: 1; font-variant-numeric: tabular-nums; }
+.result-verdict { font-weight: 700; font-size: var(--step-1); --lh: 1.45; }
+.result-verdict.is-pass { color: var(--good); }
+.result-line { color: var(--muted); font-variant-numeric: tabular-nums; }
 
 .qtext {
   margin: 0;
@@ -778,36 +768,6 @@ button { font: inherit; line-height: calc(var(--lh) * 1em); line-height: round(n
 .opt.is-removed { opacity: .35; }
 .opt.is-removed .txt { text-decoration: line-through; }
 
-
-/* Home screen of All questions */
-.resume { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; padding: 14px 16px; border-radius: 10px; background: var(--bg); }
-.resume-info { display: grid; gap: 2px; min-width: 0; }
-.resume-info strong { font-size: var(--step-1); }
-.resume-info span { color: var(--muted); font-size: var(--step--1); }
-
-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 8px; }
-legend { padding: 0; margin-bottom: 8px; }
-.choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
-.choice { position: relative; display: block; cursor: pointer; }
-.choice input { position: absolute; opacity: 0; pointer-events: none; }
-.choice span {
-  display: grid; gap: 2px; height: 100%;
-  padding: 12px 14px;
-  border-radius: 10px;
-  background: var(--surface-raised);
-}
-.choice span b { font-size: var(--step-1); }
-.choice span small { color: var(--muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
-@media (hover: hover) and (pointer: fine) { .choice:hover span { background: color-mix(in srgb, var(--course) 8%, var(--surface-raised)); } }
-.choice input:checked + span { background: color-mix(in srgb, var(--course) 18%, var(--surface-raised)); }
-.choice input:focus-visible + span { outline: 3px solid var(--course-line); outline-offset: 2px; }
-.home-actions { display: grid; gap: 12px; justify-items: start; }
-
-/* Run results (All questions) */
-.score { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
-.score-pct { font-family: var(--font-mono); font-weight: 500; font-size: 3rem; --lh: 1; color: var(--course-line); font-variant-numeric: tabular-nums; }
-.score-count { color: var(--muted); font-size: var(--step-1); font-variant-numeric: tabular-nums; }
-
 /* Pinned action dock */
 .dock {
   position: fixed;
@@ -824,16 +784,44 @@ legend { padding: 0; margin-bottom: 8px; }
 /* The button lines up with the answer cards: the page column's width, inset by the question card's padding. */
 #dock .dock-inner { max-width: calc(var(--column) - 32px); padding-inline: 22px; }
 .dock .btn { width: 100%; }
+/* Back sits beside the main button in the mock exam: a fixed width, so the main button takes the rest in whole pixels. */
+#dock .dock-inner { display: flex; gap: 12px; }
+.dock #dock-back { flex: none; width: 120px; background: var(--surface-raised); color: var(--ink); --lip-color: var(--card-edge); }
 /* After Check the button takes the answer's own green or red at once.
    (No colour transition: it restarts on every Check and Next, and piled up when cards were answered faster than frames.) */
 .dock .btn[data-tone="good"] { background: var(--good); --lip-color: color-mix(in srgb, var(--good) 62%, #000); }
 .dock .btn[data-tone="bad"] { background: var(--bad); --lip-color: color-mix(in srgb, var(--bad) 62%, #000); }
 
-.foot { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px; }
-.foot p { margin: 0; }
-.kbd-hint { display: none; color: var(--muted); font-size: var(--step--1); }
-@media (hover: hover) and (pointer: fine) { .kbd-hint { display: block; } }
-kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-radius: 4px; background: var(--seg-off); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .55); }
+/* Tab bar: Learn and Exam (the owner's choice, 2026-10-22), under the lists, Settings and the Exam screen. It's hidden while
+   answering, where the dock takes the bottom of the screen. Each tab is half the column, rounded down to an even number of
+   pixels, so its 24px icon centres on a whole pixel. */
+.tabbar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 10;
+  background: var(--surface);
+  box-shadow: var(--dock-shadow);
+  padding-top: 6px;
+  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.tabbar-inner { display: flex; max-width: var(--column); margin-left: max(0px, round(down, (100% - var(--column)) / 2, 1px)); }
+.tab {
+  appearance: none;
+  flex: none; width: 50%; width: round(down, 50%, 2px);
+  display: grid; justify-items: center; align-content: center; gap: 2px;
+  min-height: 54px; padding: 4px 0;
+  border: 0; border-radius: 10px;
+  background: none;
+  color: var(--muted);
+  font-family: var(--font-display); font-weight: 600; font-size: var(--step--1);
+  text-transform: uppercase; letter-spacing: .1em;
+  cursor: pointer;
+}
+.tab svg { display: block; width: 24px; height: 24px; }
+.tab[aria-current="page"] { color: var(--off-white); }
+@media (hover: hover) and (pointer: fine) { .tab:not([aria-current="page"]):hover { color: var(--ink); } }
 
 
 @media (max-width: 480px) {
@@ -890,10 +878,6 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
         <span class="bar" role="img"><span></span></span>
       </button>
     </div>
-    <!-- All questions mode is hidden for now; remove "hidden" to bring the link back. -->
-    <div class="secondary" hidden>
-      <button class="link-btn" id="to-runsetup" type="button">All questions, in order or random</button>
-    </div>
   </section>
 
   <section class="view" id="view-sections" hidden aria-labelledby="sections-title">
@@ -925,7 +909,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     </div>
     <div class="panel setting">
       <h3>Progress</h3>
-      <p>Clear every completed unit and any unit in progress, in both Basic and Advanced. You'll start again from the first unit of each course.</p>
+      <p>Clear every completed unit, any unit in progress and your mock exams, in both Basic and Advanced. You'll start again from the first unit of each course.</p>
       <button class="btn primary danger" id="reset-btn" type="button">Reset all progress</button>
       <p class="setting-status" id="reset-status" role="status" aria-live="polite"></p>
       <div class="bubble play-pop" id="reset-pop" hidden>
@@ -955,84 +939,70 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     <p class="sr-only" id="play-verdict" role="status" aria-live="polite"></p>
   </section>
 
-  <section class="panel" id="view-runsetup" hidden aria-labelledby="runsetup-title">
-    <div class="nav-row"><button class="link-btn" id="runsetup-back" type="button">&lsaquo; Courses</button></div>
-    <div class="resume" id="resume" hidden>
-      <div class="resume-info">
-        <span class="eyebrow">Run in progress</span>
-        <strong id="resume-pos">Question 1 of 984</strong>
-        <span id="resume-desc">Basic &middot; In order</span>
-      </div>
-      <button class="btn primary" id="resume-btn" type="button">Resume</button>
-    </div>
-
-    <h2 id="runsetup-title" tabindex="-1">All questions</h2>
-
-    <fieldset>
-      <legend class="eyebrow">Questions</legend>
-      <div class="choices">
-        <label class="choice"><input type="radio" name="set" id="set-basic" value="basic"><span><b>Basic</b><small id="count-basic"></small></span></label>
-        <label class="choice"><input type="radio" name="set" id="set-advanced" value="advanced"><span><b>Advanced</b><small id="count-advanced"></small></span></label>
-        <label class="choice"><input type="radio" name="set" id="set-both" value="both"><span><b>Both</b><small id="count-both"></small></span></label>
-      </div>
-    </fieldset>
-
-    <fieldset>
-      <legend class="eyebrow">Order</legend>
-      <div class="choices">
-        <label class="choice"><input type="radio" name="order" id="order-sequential" value="sequential"><span><b>In order</b><small>By question number</small></span></label>
-        <label class="choice"><input type="radio" name="order" id="order-random" value="random"><span><b>Random</b><small>Shuffled, each question once</small></span></label>
-      </div>
-    </fieldset>
-
-    <div class="home-actions">
-      <button class="btn primary" id="start-btn" type="button">Start run</button>
-      <div class="confirm" id="replace-confirm" hidden>
-        <p id="replace-confirm-text">This replaces your current run.</p>
-        <div class="actions">
-          <button class="btn danger small" id="replace-yes" type="button">Replace run</button>
-          <button class="btn small" id="replace-no" type="button">Cancel</button>
-        </div>
+  <section class="view" id="view-exam" hidden aria-labelledby="exam-title">
+    <header class="plate">
+      <h1 id="exam-title" tabindex="-1">Go HAM</h1>
+    </header>
+    <div class="rows-wrap" id="exam-wrap">
+      <div class="courses">
+        <button class="course-card exam-card" id="exam-basic" type="button" data-course="basic">
+          <span class="course-name">Basic</span>
+          <span class="course-sub">Mock exam</span>
+          <span class="course-sub exam-stat"></span>
+          <span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 4.5 16.5 12 9 19.5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </button>
+        <button class="course-card exam-card" id="exam-advanced" type="button" data-course="advanced">
+          <span class="course-name">Advanced</span>
+          <span class="course-sub">Mock exam</span>
+          <span class="course-sub exam-stat"></span>
+          <span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 4.5 16.5 12 9 19.5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </button>
       </div>
     </div>
   </section>
 
-  <section class="panel" id="view-card" hidden aria-labelledby="q-text">
-    <div class="card-top">
-      <span class="tag" id="q-bank">Basic</span>
-      <button class="link-btn" id="to-runsetup-from-card" type="button">Change questions</button>
+  <section class="panel" id="view-exam-play" hidden aria-labelledby="exam-text">
+    <div class="play-top">
+      <button class="icon-btn" id="exam-leave" type="button" aria-label="Leave exam" title="Leave exam"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+      <div class="unit-bar" id="exam-bar" role="progressbar" aria-label="Questions answered" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+      <button class="icon-btn grid-btn" id="exam-grid-btn" type="button" aria-label="All questions" title="All questions" aria-expanded="false"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="2.5" width="6" height="6" rx="1.5" fill="currentColor"/><rect x="11.5" y="2.5" width="6" height="6" rx="1.5" fill="currentColor"/><rect x="2.5" y="11.5" width="6" height="6" rx="1.5" fill="currentColor"/><rect x="11.5" y="11.5" width="6" height="6" rx="1.5" fill="currentColor"/></svg></button>
     </div>
-    <div class="progress">
-      <div class="progress-text">
-        <strong id="q-pos">Question 1 of 984</strong>
-        <span id="q-run">Basic &middot; In order</span>
-      </div>
-      <span class="bar"><span id="q-bar"></span></span>
+    <div class="bubble play-pop" id="exam-leave-pop" hidden>
+      <p>Leave the exam? Your answers and time are saved.</p>
+      <button class="btn" id="exam-leave-yes" type="button">Leave exam</button>
     </div>
-    <h2 class="qtext" id="q-text" tabindex="-1"></h2>
-    <div class="opts" id="q-opts" role="group" aria-labelledby="q-text"></div>
-    <p class="sr-only" id="q-verdict" role="status" aria-live="polite"></p>
-    <p class="kbd-hint">Keys: <kbd>A</kbd>&ndash;<kbd>D</kbd> or <kbd>1</kbd>&ndash;<kbd>4</kbd> to choose, <kbd>Enter</kbd> to check, then <kbd>Enter</kbd> or <kbd>&rarr;</kbd> for the next question.</p>
+    <p class="phase-label" id="exam-num">Question 1</p>
+    <div class="exam-q" id="exam-question">
+      <h2 class="qtext" id="exam-text" tabindex="-1"></h2>
+      <div class="opts" id="exam-opts" role="group" aria-labelledby="exam-text"></div>
+    </div>
+    <div class="exam-q" id="exam-review" hidden>
+      <p class="exam-left" id="exam-left" tabindex="-1"></p>
+      <div class="exam-grid" id="exam-grid" role="group" aria-label="Questions"></div>
+    </div>
   </section>
 
-  <section class="panel" id="view-done" hidden aria-labelledby="done-title">
-    <span class="eyebrow">Run complete</span>
-    <h2 id="done-title" tabindex="-1">All questions answered</h2>
-    <div class="score">
-      <span class="score-pct" id="done-pct">&mdash;</span>
-      <span class="score-count" id="done-count"></span>
-    </div>
-    <div class="home-actions">
-      <button class="btn primary" id="again-btn" type="button">Start another run</button>
-    </div>
+  <section class="panel" id="view-exam-result" hidden aria-labelledby="result-pct">
+    <p class="phase-label" id="result-course">Basic mock exam</p>
+    <h2 class="result-pct" id="result-pct" tabindex="-1">0%</h2>
+    <p class="result-verdict" id="result-verdict"></p>
+    <p class="result-line" id="result-line"></p>
   </section>
 </div>
 
 <div class="dock" id="dock" hidden>
   <div class="dock-inner">
+    <button class="btn" id="dock-back" type="button" hidden>Back</button>
     <button class="btn primary" id="dock-btn" type="button"><span id="dock-label">Check</span></button>
   </div>
 </div>
+
+<nav class="tabbar" id="tabbar" aria-label="Main" hidden>
+  <div class="tabbar-inner">
+    <button class="tab" id="tab-learn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C9.6 4.9 6.4 4.6 3.5 5.6v13c2.9-1 6.1-.7 8.5.9 2.4-1.6 5.6-1.9 8.5-.9v-13c-2.9-1-6.1-.7-8.5.9Zm0 0v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg><span>Learn</span></button>
+    <button class="tab" id="tab-exam" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 4.5H7A2.5 2.5 0 0 0 4.5 7v12A2.5 2.5 0 0 0 7 21.5h10a2.5 2.5 0 0 0 2.5-2.5V7A2.5 2.5 0 0 0 17 4.5h-1.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><rect x="8.5" y="2.5" width="7" height="4" rx="1.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="m8.5 13.5 2.4 2.4 4.6-4.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Exam</span></button>
+  </div>
+</nav>
 
 <div class="fx" id="fx" aria-hidden="true"></div>
 
@@ -1050,14 +1020,10 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   // Set to false to show plain numbers only ("Section 1", "Unit 1").
   var SHOW_NAMES = true;
 
-  var STORE_KEY = 'amateurRadioStudy.v1';        // All questions mode
   var UNITS_KEY = 'amateurRadioStudy.units.v1';  // Unit scores and the unit in progress
   var LETTERS = ['A', 'B', 'C', 'D'];
   var COURSE_NAME = { basic: 'Basic', advanced: 'Advanced' };
-  var SET_LABEL = { basic: 'Basic', advanced: 'Advanced', both: 'Basic + Advanced' };
-  var ORDER_LABEL = { sequential: 'In order', random: 'Random' };
   var DOT = ' \u00b7 ';
-  var DASH = '\u2014';
   var CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 12.5l4.2 4.2L18.5 8" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var CHEV_SVG = '<svg viewBox="0 0 24 24"><path d="M9 4.5 16.5 12 9 19.5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var STAR_PATH = 'M12 2.7 14.53 9.22 21.51 9.61 16.09 14.03 17.88 20.79 12 17 6.12 20.79 7.91 14.03 2.49 9.61 9.47 9.22Z';
@@ -1271,12 +1237,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   }
 
   var byId = {};
-  var counts = { basic: 0, advanced: 0, both: 0 };
-  bank.questions.forEach(function (q) {
-    byId[q.id] = q;
-    counts[q.bank]++;
-    counts.both++;
-  });
+  bank.questions.forEach(function (q) { byId[q.id] = q; });
 
   // ---- Courses, sections and units, read from the question IDs -------------
   // B-002-005-003 is course Basic, section 002, unit 005, question 003.
@@ -1413,69 +1374,6 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     return true;
   }
 
-  // ---- All questions mode: state and storage --------------------------------
-
-  function sanitizeRun(r) {
-    var oldPos = Math.max(0, Math.min(r.pos | 0, r.ids.length));
-    var ids = [];
-    var pos = 0;
-    r.ids.forEach(function (id, i) {
-      if (byId[id]) {
-        if (i < oldPos) pos++;
-        ids.push(id);
-      }
-    });
-    if (!ids.length) return null;
-    var choice = Number.isInteger(r.choice) && r.choice >= 0 && r.choice < 4 ? r.choice : null;
-    // The pending card was dropped from a regenerated bank: its answer is already counted.
-    if (oldPos < r.ids.length && !byId[r.ids[oldPos]]) choice = null;
-    if (pos >= ids.length) choice = null;
-    return {
-      set: SET_LABEL[r.set] ? r.set : 'basic',
-      order: ORDER_LABEL[r.order] ? r.order : 'sequential',
-      ids: ids,
-      pos: pos,
-      choice: choice,
-      answered: Math.max(0, r.answered | 0),
-      correct: Math.max(0, r.correct | 0)
-    };
-  }
-
-  function load() {
-    var state = { settings: { set: 'basic', order: 'sequential' }, run: null };
-    var saved = null;
-    try { saved = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { saved = null; }
-    if (!saved || typeof saved !== 'object') return state;
-    if (saved.settings) {
-      if (SET_LABEL[saved.settings.set]) state.settings.set = saved.settings.set;
-      if (ORDER_LABEL[saved.settings.order]) state.settings.order = saved.settings.order;
-    }
-    // The accuracy meter is switched off; its old tallies are kept untouched.
-    if (saved.stats) state.stats = saved.stats;
-    if (saved.run && Array.isArray(saved.run.ids)) state.run = sanitizeRun(saved.run);
-    return state;
-  }
-
-  function save() {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable: keep going in memory */ }
-  }
-
-  var state = load();
-
-  function runActive() { return !!(state.run && state.run.pos < state.run.ids.length); }
-
-  function pct(correct, answered) {
-    return answered ? (correct / answered * 100).toFixed(1) + '%' : DASH;
-  }
-
-  function scoreLine(correct, answered) {
-    return answered ? correct + ' of ' + answered + ' correct' : 'No answers yet';
-  }
-
-  function runDesc(r) {
-    return SET_LABEL[r.set] + DOT + ORDER_LABEL[r.order];
-  }
-
   // ---- Navigation ----------------------------------------------------------
   // nav is the stack of screens. Each history entry carries a copy of it, so the
   // phone's back gesture and a reload both land on the right screen.
@@ -1483,7 +1381,12 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   var nav = [];
   var view = null;
   var historyOK = true;
-  var VIEWS = ['home', 'sections', 'units', 'play', 'settings', 'runsetup', 'card', 'done'];
+  var VIEWS = ['home', 'sections', 'units', 'play', 'settings', 'exam', 'exam-play', 'exam-result'];
+  // The tab bar shows on these screens; while answering, the dock takes the bottom of the screen instead.
+  var TABBED = ['home', 'sections', 'units', 'settings', 'exam'];
+  // The Exam screens sit on top of the Learn screen they were opened from, so the Learn tab, or the phone's back gesture,
+  // returns to it.
+  function tabOf(v) { return v === 'exam' || v === 'exam-play' || v === 'exam-result' ? 'exam' : 'learn'; }
 
   function syncHistory(method) {
     if (!historyOK) return;
@@ -1520,6 +1423,18 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     replace(target);
   }
 
+  // Steps back to an earlier screen in the stack (index k) at once, then the browser's history back as many steps to match.
+  function popTo(k) {
+    var steps = nav.length - 1 - k;
+    if (steps <= 0) return;
+    nav = nav.slice(0, k + 1);
+    render();
+    if (historyOK) {
+      expectPop = true;
+      history.go(-steps);
+    }
+  }
+
   var expectPop = false;
 
   window.addEventListener('popstate', function (e) {
@@ -1542,9 +1457,9 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       case 'units': return courses[st.c] && courses[st.c].sections[st.s] ? st : { v: 'home' };
       case 'play': return ust.attempt ? st : { v: 'home' };
       case 'settings': return st;
-      case 'runsetup': return st;
-      case 'card': return runActive() ? st : { v: 'runsetup' };
-      case 'done': return state.run && !runActive() ? st : { v: 'runsetup' };
+      case 'exam': return st;
+      case 'exam-play': return est.attempts[st.c] ? st : { v: 'exam' };
+      case 'exam-result': return est.results[st.c] && est.results[st.c].length ? st : { v: 'exam' };
       default: return { v: 'home' };
     }
   }
@@ -1557,8 +1472,16 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       syncHistory('replaceState');
       st = fixed;
     }
+    stopExamClock();
     view = st.v;
     VIEWS.forEach(function (name) { $('view-' + name).hidden = name !== view; });
+    var tabbed = TABBED.indexOf(view) >= 0;
+    $('tabbar').hidden = !tabbed;
+    document.body.classList.toggle('has-tabbar', tabbed);
+    ['learn', 'exam'].forEach(function (t) {
+      if (tabOf(view) === t) $('tab-' + t).setAttribute('aria-current', 'page');
+      else $('tab-' + t).removeAttribute('aria-current');
+    });
     // Each course has its own colour: azure for Basic, amber for Advanced.
     document.body.dataset.course = (view === 'play' ? playUnit().course.key : st.c) || 'basic';
     closePops(true);
@@ -1567,9 +1490,9 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     if (view === 'units') renderUnits(courses[st.c], courses[st.c].sections[st.s]);
     if (view === 'play') { playSel = null; renderPlay(); }
     if (view === 'settings') renderSettings();
-    if (view === 'runsetup') renderRunSetup();
-    if (view === 'card') { runSel = null; renderCard(); }
-    if (view === 'done') renderDone();
+    if (view === 'exam') renderExamHome();
+    if (view === 'exam-play') { examReview = false; startExamClock(st.c); renderExamPlay(); }
+    if (view === 'exam-result') renderExamResult();
     renderDock();
     window.scrollTo(0, 0);
     // After a unit, bring that unit's row into view so its new status shows.
@@ -1586,9 +1509,11 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
 
   // ---- Pinned action dock --------------------------------------------------
 
-  // tone colours the button 'good' or 'bad' after Check.
-  function setDock(label, disabled, tone) {
+  // tone colours the button 'good' or 'bad' after Check. back, if given ({ disabled }), shows the Back button beside it.
+  function setDock(label, disabled, tone, back) {
     var dock = $('dock');
+    $('dock-back').hidden = !back;
+    if (back) $('dock-back').disabled = !!back.disabled;
     if (label === null) {
       dock.hidden = true;
       document.body.classList.remove('has-dock');
@@ -1606,10 +1531,12 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       var a = ust.attempt;
       if (a.choice === null) setDock('Check', playSel === null);
       else setDock(playIsLastCard() ? 'Finish' : 'Next', false, a.choice === playQuestion().answer ? 'good' : 'bad');
-    } else if (view === 'card') {
-      var r = state.run;
-      if (r.choice === null) setDock('Check', runSel === null);
-      else setDock(r.pos + 1 >= r.ids.length ? 'Finish run' : 'Next question', false, r.choice === currentQuestion().answer ? 'good' : 'bad');
+    } else if (view === 'exam-play') {
+      var x = est.attempts[top().c];
+      if (examReview) setDock('Submit', false);
+      else setDock(x.pos + 1 >= x.ids.length ? 'Finish' : 'Next', false, '', { disabled: x.pos === 0 });
+    } else if (view === 'exam-result') {
+      setDock('Done', false);
     } else {
       setDock(null);
     }
@@ -1618,10 +1545,28 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   $('dock-btn').addEventListener('click', function () {
     if (view === 'play' && ust.attempt) {
       if (ust.attempt.choice === null) checkPlay(); else nextPlay();
-    } else if (view === 'card') {
-      if (state.run.choice === null) checkRun(); else nextRun();
+    } else if (view === 'exam-play') {
+      if (examReview) submitExam(); else examNext();
+    } else if (view === 'exam-result') {
+      backTo({ v: 'exam' });
     }
   });
+  $('dock-back').addEventListener('click', function () { if (view === 'exam-play') examBack(); });
+
+  // ---- Tab bar ---------------------------------------------------------------
+
+  $('tab-learn').addEventListener('click', function () {
+    if (tabOf(view) === 'exam') {
+      // Back to the Learn screen the Exam tab was opened from.
+      var k = nav.length - 1;
+      while (k >= 0 && tabOf(nav[k].v) === 'exam') k--;
+      if (k >= 0) popTo(k); else replace({ v: 'home' });
+    } else {
+      // Already on Learn: back to Courses.
+      popTo(0);
+    }
+  });
+  $('tab-exam').addEventListener('click', function () { if (tabOf(view) !== 'exam') push({ v: 'exam' }); });
 
   // ---- Shared answer card --------------------------------------------------
 
@@ -1697,7 +1642,6 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
 
   $('course-basic').addEventListener('click', function () { push({ v: 'sections', c: 'basic' }); });
   $('course-advanced').addEventListener('click', function () { push({ v: 'sections', c: 'advanced' }); });
-  $('to-runsetup').addEventListener('click', function () { push({ v: 'runsetup' }); });
   $('to-settings').addEventListener('click', function () { push({ v: 'settings' }); });
 
   // ---- Settings ------------------------------------------------------------
@@ -1712,15 +1656,15 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     e.stopPropagation();
     togglePop('reset-pop', this);
   });
-  // Clears every unit's score and the unit in progress in both courses, so each course is back to its first unit.
-  // The hidden All questions mode loses its run in progress too; its set and order choices stay.
+  // Clears every unit's score, the unit in progress and the mock exams (in progress and results) in both courses, so each
+  // course is back to its first unit.
   $('reset-yes').addEventListener('click', function () {
     closePops();
     ust = { scores: {}, attempt: null };
     saveUnits();
+    est = { attempts: {}, results: { basic: [], advanced: [] } };
+    saveExams();
     celebrate = null;
-    state.run = null;
-    save();
     $('reset-status').textContent = 'All progress has been reset.';
     $('reset-btn').focus({ preventScroll: true });
   });
@@ -1936,7 +1880,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     bubbleRow = null;
     if (row) row.setAttribute('aria-expanded', 'false');
     if (instant) {
-      $('units-wrap').querySelectorAll('.bubble').forEach(function (b) { b.remove(); });
+      document.querySelectorAll('.unit-pop').forEach(function (b) { b.remove(); });
     } else if (bubble) {
       // It gives up its id at once, so another unit's pop-up can open while it fades.
       bubble.removeAttribute('id');
@@ -1968,16 +1912,18 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
 
   // Floats just below its unit, over the units that follow, so nothing in the list moves.
   // Near the end of the list, where there's no room below, it opens above the unit instead. Its pointer aims at the unit.
+  // Places the open pop-up under its unit or exam card (above it near the end of a list), pointing at it.
   function placeBubble() {
     var bubble = $('unit-bubble');
     if (!bubble || !bubbleRow) return;
+    var wrap = bubble.parentNode;
     var below = bubbleRow.offsetTop + bubbleRow.offsetHeight + EDGE + POP_GAP;
     var above = bubbleRow.offsetTop - bubble.offsetHeight - POP_GAP;
-    var flip = below + bubble.offsetHeight > $('units-wrap').offsetHeight && above >= 0;
+    var flip = below + bubble.offsetHeight > wrap.offsetHeight && above >= 0;
     bubble.classList.toggle('is-above', flip);
     bubble.style.top = (flip ? above : below) + 'px';
     var unitBox = bubbleRow.getBoundingClientRect();
-    var wrapBox = $('units-wrap').getBoundingClientRect();
+    var wrapBox = wrap.getBoundingClientRect();
     var caret = Math.round(unitBox.left + unitBox.width / 2 - wrapBox.left - bubble.offsetLeft - 7);
     bubble.style.setProperty('--caret', Math.min(Math.max(caret, CARET_MIN), bubble.offsetWidth - CARET_MIN - 14) + 'px');
   }
@@ -1985,13 +1931,32 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   window.addEventListener('resize', placeBubble);
 
   // Tapping a unit opens a pop-up under it: the unit's number and size, its name, then Start (or Resume), or why it's locked.
-  function toggleBubble(row, u) {
+  // Opens a pop-up (built by build) under a unit or an exam card, in wrap; tapping the card again closes it. One pop-up at a
+  // time, with the id unit-bubble, whichever kind it is.
+  function toggleCardPop(row, wrap, build) {
     var wasOpen = row.getAttribute('aria-expanded') === 'true';
     closeBubble();
     if (wasOpen) return;
+    var bubble = build();
+    bubble.id = 'unit-bubble';
+    bubble.addEventListener('click', function (e) { e.stopPropagation(); });
+    wrap.appendChild(bubble);
+    bubbleRow = row;
+    placeBubble();
+    row.setAttribute('aria-expanded', 'true');
+    row.setAttribute('aria-controls', 'unit-bubble');
+    var startBtn = bubble.querySelector('button');
+    if (startBtn) startBtn.focus({ preventScroll: true });
+    bubble.scrollIntoView({ block: 'nearest' });
+  }
+
+  function toggleBubble(row, u) {
+    toggleCardPop(row, $('units-wrap'), function () { return unitPop(u); });
+  }
+
+  function unitPop(u) {
     var locked = !isUnlocked(u);
     var bubble = el('div', 'bubble unit-pop' + (locked ? ' is-locked' : ''));
-    bubble.id = 'unit-bubble';
     bubble.appendChild(el('p', 'bubble-unit', 'Unit ' + u.n + DOT + u.ids.length + ' questions'));
     if (nameOf(u.key)) bubble.appendChild(el('p', 'bubble-name', nameOf(u.key)));
     if (locked) {
@@ -2003,19 +1968,11 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       start.addEventListener('click', function () { closeBubble(true); openUnit(u); });
       bubble.appendChild(start);
     }
-    bubble.addEventListener('click', function (e) { e.stopPropagation(); });
-    $('units-wrap').appendChild(bubble);
-    bubbleRow = row;
-    placeBubble();
-    row.setAttribute('aria-expanded', 'true');
-    row.setAttribute('aria-controls', 'unit-bubble');
-    var startBtn = bubble.querySelector('button');
-    if (startBtn) startBtn.focus({ preventScroll: true });
-    bubble.scrollIntoView({ block: 'nearest' });
+    return bubble;
   }
 
   // A tap anywhere else closes the pop-up.
-  document.addEventListener('click', function () { if (view === 'units') closeBubble(); });
+  document.addEventListener('click', function () { if (view === 'units' || view === 'exam') closeBubble(); });
 
   $('units-back').addEventListener('click', function () { backTo({ v: 'sections', c: top().c }); });
 
@@ -2142,6 +2099,277 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     scrollToUnit = u.key;
     backToUnits(u);
   }
+
+  // ---- Mock exams ------------------------------------------------------------
+  // Drawn like the real exam (ISED's RIC-3): one question at random from each topic area, which is each unit, so 100 for
+  // Basic and 50 for Advanced. Nothing shows right or wrong until the exam is submitted, and you can move freely between
+  // questions and change answers (the owner's choices, 2026-10-22). 70% passes; for Basic, 80% earns Honours. An exam in
+  // progress is saved, one per course, and only time spent on the exam's screen counts.
+
+  var EXAMS_KEY = 'amateurRadioStudy.exams.v1';
+  var PASS = 0.7;
+  var HONOURS = 0.8;   // Basic only
+  var RESULTS_KEPT = 50;
+
+  // An exam in progress only resumes on the exact questions it was drawn from.
+  function sanitizeExam(c, a) {
+    var flat = courses[c] && courses[c].flat;
+    if (!flat || !a || !Array.isArray(a.ids) || a.ids.length !== flat.length) return null;
+    if (!a.ids.every(function (id, i) { return flat[i].ids.indexOf(id) >= 0; })) return null;
+    return {
+      ids: a.ids.slice(),
+      answers: a.ids.map(function (id, i) {
+        var v = Array.isArray(a.answers) ? a.answers[i] : null;
+        return Number.isInteger(v) && v >= 0 && v < 4 ? v : null;
+      }),
+      pos: Math.max(0, Math.min(a.pos | 0, a.ids.length - 1)),
+      ms: Math.max(0, Number(a.ms) || 0)
+    };
+  }
+
+  function sanitizeResult(r) {
+    if (!r || !Number.isInteger(r.right) || !Number.isInteger(r.total) || r.total <= 0 || r.right < 0 || r.right > r.total) return null;
+    return { at: Number(r.at) || 0, right: r.right, total: r.total, ms: Math.max(0, Number(r.ms) || 0) };
+  }
+
+  function loadExams() {
+    var st = { attempts: {}, results: { basic: [], advanced: [] } };
+    var saved = null;
+    try { saved = JSON.parse(localStorage.getItem(EXAMS_KEY)); } catch (e) { saved = null; }
+    if (!saved || typeof saved !== 'object') return st;
+    ['basic', 'advanced'].forEach(function (c) {
+      var a = saved.attempts && sanitizeExam(c, saved.attempts[c]);
+      if (a) st.attempts[c] = a;
+      var list = saved.results && Array.isArray(saved.results[c]) ? saved.results[c].map(sanitizeResult).filter(Boolean) : [];
+      st.results[c] = list.slice(-RESULTS_KEPT);
+    });
+    return st;
+  }
+
+  function saveExams() {
+    try { localStorage.setItem(EXAMS_KEY, JSON.stringify(est)); } catch (e) { /* storage unavailable: keep going in memory */ }
+  }
+
+  var est = loadExams();
+  var examReview = false;   // showing every question as a numbered square, to jump to one or submit
+
+  function newExam(c) {
+    var ids = courses[c].flat.map(function (u) { return u.ids[Math.floor(Math.random() * u.ids.length)]; });
+    return { ids: ids, answers: ids.map(function () { return null; }), pos: 0, ms: 0 };
+  }
+
+  function examPct(r) { return Math.round(r.right / r.total * 100) + '%'; }
+
+  function examVerdict(c, r) {
+    var f = r.right / r.total;
+    if (c === 'basic' && f >= HONOURS) return 'Pass with Honours';
+    return f >= PASS ? 'Pass' : 'Not passed yet';
+  }
+
+  // 4:05, or 1:02:09 past an hour.
+  function clockText(ms) {
+    var t = Math.floor(ms / 1000);
+    var h = Math.floor(t / 3600), m = Math.floor(t / 60) % 60, sec = t % 60;
+    return (h ? h + ':' + (m < 10 ? '0' : '') : '') + m + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+
+  // The clock runs only while the exam's screen is showing and the app is in front. It isn't shown during the exam, only in
+  // the result and on the Exam cards.
+  var examClock = { c: null, since: 0 };
+
+  function startExamClock(c) {
+    if (examClock.since || document.hidden || !est.attempts[c]) return;
+    examClock.c = c;
+    examClock.since = Date.now();
+  }
+
+  function stopExamClock() {
+    if (!examClock.since) return;
+    var a = est.attempts[examClock.c];
+    if (a) a.ms += Date.now() - examClock.since;
+    examClock.since = 0;
+    saveExams();
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) stopExamClock();
+    else if (view === 'exam-play') startExamClock(top().c);
+  });
+  window.addEventListener('pagehide', stopExamClock);
+
+  // The Exam screen: a card for each course, showing an exam in progress or the best and last scores.
+  function renderExamHome() {
+    closeBubble(true);
+    ['basic', 'advanced'].forEach(function (c) {
+      var a = est.attempts[c];
+      var list = est.results[c];
+      var text = '';
+      if (a) {
+        text = 'In progress' + DOT + clockText(a.ms);
+      } else if (list.length) {
+        var best = list.reduce(function (b, r) { return r.right / r.total > b.right / b.total ? r : b; });
+        text = 'Best ' + examPct(best) + DOT + 'Last ' + examPct(list[list.length - 1]);
+      }
+      $('exam-' + c).querySelector('.exam-stat').textContent = text;
+    });
+  }
+
+  ['basic', 'advanced'].forEach(function (c) {
+    $('exam-' + c).addEventListener('click', function (e) {
+      e.stopPropagation();
+      toggleCardPop(this, $('exam-wrap'), function () { return examPop(c); });
+    });
+  });
+
+  function examPop(c) {
+    var a = est.attempts[c];
+    var total = courses[c].flat.length;
+    var bubble = el('div', 'bubble unit-pop');
+    // In its own course's colour, like the card it points at (the Exam screen itself has no course).
+    bubble.dataset.course = c;
+    if (a) {
+      var answered = a.answers.filter(function (x) { return x !== null; }).length;
+      bubble.appendChild(el('p', 'bubble-unit', 'In progress' + DOT + clockText(a.ms)));
+      bubble.appendChild(el('p', 'bubble-name', answered + ' of ' + total + ' answered'));
+    } else {
+      bubble.appendChild(el('p', 'bubble-unit', c === 'basic' ? 'Pass at 70%, Honours at 80%' : 'Pass at 70%'));
+      bubble.appendChild(el('p', 'bubble-name', total + '-question mock exam'));
+    }
+    var start = el('button', 'btn primary', a ? 'Resume' : 'Start');
+    start.type = 'button';
+    start.addEventListener('click', function () {
+      closeBubble(true);
+      if (!est.attempts[c]) {
+        est.attempts[c] = newExam(c);
+        saveExams();
+      }
+      push({ v: 'exam-play', c: c });
+      focusQuestion('exam-text');
+    });
+    bubble.appendChild(start);
+    return bubble;
+  }
+
+  // An exam question, or (examReview) every question as a numbered square.
+  function renderExamPlay() {
+    var c = top().c;
+    var a = est.attempts[c];
+    var total = a.ids.length;
+    var answered = a.answers.filter(function (x) { return x !== null; }).length;
+    setFill($('exam-bar').firstElementChild, answered / total);
+    $('exam-bar').setAttribute('aria-valuenow', String(Math.round(answered / total * 100)));
+    $('exam-question').hidden = examReview;
+    $('exam-review').hidden = !examReview;
+    $('exam-grid-btn').setAttribute('aria-expanded', examReview ? 'true' : 'false');
+    if (examReview) {
+      $('exam-num').textContent = 'All questions';
+      renderExamGrid(a);
+    } else {
+      var q = byId[a.ids[a.pos]];
+      $('exam-num').textContent = 'Question ' + (a.pos + 1);
+      $('exam-text').textContent = q.q;
+      renderOptions($('exam-opts'), q, a.answers[a.pos], null, selectExam);
+    }
+    renderDock();
+  }
+
+  function renderExamGrid(a) {
+    var grid = $('exam-grid');
+    grid.textContent = '';
+    a.ids.forEach(function (id, i) {
+      var done = a.answers[i] !== null;
+      var b = el('button', 'exam-num' + (done ? ' is-answered' : '') + (i === a.pos ? ' is-here' : ''), String(i + 1));
+      b.type = 'button';
+      b.setAttribute('aria-label', 'Question ' + (i + 1) + (done ? ', answered' : ', not answered'));
+      b.addEventListener('click', function () { examGoTo(i); });
+      grid.appendChild(b);
+    });
+    var left = a.answers.filter(function (x) { return x === null; }).length;
+    $('exam-left').textContent = left ? left + (left === 1 ? ' question isn\'t' : ' questions aren\'t') + ' answered yet. Unanswered questions count as wrong.' : 'Every question is answered.';
+  }
+
+  function selectExam(i) {
+    var a = est.attempts[top().c];
+    if (view !== 'exam-play' || examReview || !a) return;
+    a.answers[a.pos] = i;
+    saveExams();
+    markSelected($('exam-opts'), i);
+    var answered = a.answers.filter(function (x) { return x !== null; }).length;
+    setFill($('exam-bar').firstElementChild, answered / a.ids.length);
+    $('exam-bar').setAttribute('aria-valuenow', String(Math.round(answered / a.ids.length * 100)));
+  }
+
+  function examGoTo(i) {
+    var a = est.attempts[top().c];
+    a.pos = i;
+    examReview = false;
+    saveExams();
+    renderExamPlay();
+    focusQuestion('exam-text');
+  }
+
+  // Next question; after the last, the numbered squares, with Submit.
+  function examNext() {
+    var a = est.attempts[top().c];
+    if (a.pos + 1 < a.ids.length) {
+      examGoTo(a.pos + 1);
+    } else {
+      examReview = true;
+      renderExamPlay();
+      $('exam-left').focus({ preventScroll: true });
+      window.scrollTo(0, 0);
+    }
+  }
+
+  function examBack() {
+    var a = est.attempts[top().c];
+    if (a.pos > 0) examGoTo(a.pos - 1);
+  }
+
+  $('exam-grid-btn').addEventListener('click', function (e) {
+    e.stopPropagation();
+    closePops();
+    if (examReview) {
+      examGoTo(est.attempts[top().c].pos);
+    } else {
+      examReview = true;
+      renderExamPlay();
+      $('exam-left').focus({ preventScroll: true });
+      window.scrollTo(0, 0);
+    }
+  });
+
+  function submitExam() {
+    var c = top().c;
+    var a = est.attempts[c];
+    stopExamClock();
+    var right = a.ids.filter(function (id, i) { return a.answers[i] === byId[id].answer; }).length;
+    est.results[c].push({ at: Date.now(), right: right, total: a.ids.length, ms: Math.round(a.ms) });
+    est.results[c] = est.results[c].slice(-RESULTS_KEPT);
+    delete est.attempts[c];
+    saveExams();
+    examReview = false;
+    replace({ v: 'exam-result', c: c });
+    $('result-pct').focus({ preventScroll: true });
+  }
+
+  function renderExamResult() {
+    var c = top().c;
+    var list = est.results[c];
+    var r = list[list.length - 1];
+    var verdict = examVerdict(c, r);
+    $('result-course').textContent = COURSE_NAME[c] + ' mock exam';
+    $('result-pct').textContent = examPct(r);
+    $('result-verdict').textContent = verdict;
+    $('result-verdict').classList.toggle('is-pass', verdict !== 'Not passed yet');
+    $('result-line').textContent = r.right + ' of ' + r.total + ' right' + DOT + clockText(r.ms);
+  }
+
+  $('exam-leave').addEventListener('click', function (e) {
+    e.stopPropagation();
+    togglePop('exam-leave-pop', this);
+  });
+  $('exam-leave-yes').addEventListener('click', function () { backTo({ v: 'exam' }); });
 
   // ---- Feedback moments ------------------------------------------------------
   // All decorative: with Reduce Motion on, the screens simply show their new state.
@@ -2543,7 +2771,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
   // Closes the pop-ups under the X, Hint and Reset buttons: they fade out, or on a change of screen (instant) go at once,
   // including one still fading.
   function closePops(instant) {
-    ['leave-pop', 'hint-pop', 'reset-pop'].forEach(function (id) {
+    ['leave-pop', 'hint-pop', 'reset-pop', 'exam-leave-pop'].forEach(function (id) {
       var pop = $(id);
       if (instant) {
         if (pop.closing) {
@@ -2557,7 +2785,7 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
         fadeOut(pop, function () { pop.hidden = true; });
       }
     });
-    ['play-leave', 'play-hint', 'reset-btn'].forEach(function (id) { $(id).setAttribute('aria-expanded', 'false'); });
+    ['play-leave', 'play-hint', 'reset-btn', 'exam-leave'].forEach(function (id) { $(id).setAttribute('aria-expanded', 'false'); });
   }
 
   // Floats just under the button that opened it, pointing at that button. For a button near the side of the screen (the X,
@@ -2590,10 +2818,10 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     pop.querySelector('button').focus({ preventScroll: true });
   }
 
-  ['leave-pop', 'hint-pop', 'reset-pop'].forEach(function (id) {
+  ['leave-pop', 'hint-pop', 'reset-pop', 'exam-leave-pop'].forEach(function (id) {
     $(id).addEventListener('click', function (e) { e.stopPropagation(); });
   });
-  document.addEventListener('click', function () { if (view === 'play' || view === 'settings') closePops(); });
+  document.addEventListener('click', function () { if (view === 'play' || view === 'settings' || view === 'exam-play') closePops(); });
 
   $('play-hint').addEventListener('click', function (e) {
     e.stopPropagation();
@@ -2630,134 +2858,6 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
     backTo({ v: 'units', c: u.course.key, s: u.section.n - 1 });
   }
 
-  // ---- All questions mode --------------------------------------------------
-
-  var runSel = null;
-
-  $('count-basic').textContent = counts.basic + ' questions';
-  $('count-advanced').textContent = counts.advanced + ' questions';
-  $('count-both').textContent = counts.both + ' questions';
-
-  function renderRunSetup() {
-    $('set-' + state.settings.set).checked = true;
-    $('order-' + state.settings.order).checked = true;
-    $('replace-confirm').hidden = true;
-    var active = runActive();
-    $('resume').hidden = !active;
-    $('runsetup-title').textContent = active ? 'Or start a new run' : 'All questions';
-    if (active) {
-      $('resume-pos').textContent = 'Question ' + (state.run.pos + 1) + ' of ' + state.run.ids.length;
-      $('resume-desc').textContent = runDesc(state.run) + DOT + scoreLine(state.run.correct, state.run.answered) + ' this run';
-    }
-  }
-
-  document.querySelectorAll('input[name="set"], input[name="order"]').forEach(function (input) {
-    input.addEventListener('change', function () {
-      state.settings[input.name] = input.value;
-      save();
-    });
-  });
-
-  function shuffle(list) {
-    for (var i = list.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
-      var t = list[i]; list[i] = list[j]; list[j] = t;
-    }
-    return list;
-  }
-
-  function startRun() {
-    var set = state.settings.set;
-    var order = state.settings.order;
-    var ids = bank.questions
-      .filter(function (q) { return set === 'both' || q.bank === set; })
-      .map(function (q) { return q.id; });
-    if (order === 'random') shuffle(ids);
-    state.run = { set: set, order: order, ids: ids, pos: 0, choice: null, answered: 0, correct: 0 };
-    save();
-    push({ v: 'card' });
-    focusQuestion('q-text');
-  }
-
-  $('start-btn').addEventListener('click', function () {
-    if (runActive()) {
-      $('replace-confirm-text').textContent = 'This replaces your current run (' + runDesc(state.run) + ', question ' + (state.run.pos + 1) + ' of ' + state.run.ids.length + ').';
-      $('replace-confirm').hidden = false;
-      $('replace-no').focus();
-      return;
-    }
-    startRun();
-  });
-  $('replace-yes').addEventListener('click', startRun);
-  $('replace-no').addEventListener('click', function () {
-    $('replace-confirm').hidden = true;
-    $('start-btn').focus();
-  });
-  $('resume-btn').addEventListener('click', function () { push({ v: 'card' }); focusQuestion('q-text'); });
-  $('runsetup-back').addEventListener('click', function () { backTo({ v: 'home' }); });
-  $('to-runsetup-from-card').addEventListener('click', function () { backTo({ v: 'runsetup' }); });
-  $('again-btn').addEventListener('click', function () { backTo({ v: 'runsetup' }); });
-
-  function currentQuestion() { return byId[state.run.ids[state.run.pos]]; }
-
-  function renderCard() {
-    var r = state.run;
-    var q = currentQuestion();
-    var total = r.ids.length;
-    $('q-bank').textContent = q.bank === 'basic' ? 'Basic' : 'Advanced';
-    $('q-pos').textContent = 'Question ' + (r.pos + 1) + ' of ' + total;
-    $('q-run').textContent = runDesc(r);
-    setFill($('q-bar'), (r.pos + (r.choice === null ? 0 : 1)) / total);
-    $('q-text').textContent = q.q;
-    renderOptions($('q-opts'), q, runSel, r.choice, selectRun);
-    renderVerdict($('q-verdict'), q, r.choice);
-    renderDock();
-  }
-
-  function selectRun(i) {
-    if (view !== 'card' || state.run.choice !== null) return;
-    runSel = i;
-    markSelected($('q-opts'), i);
-    renderDock();
-  }
-
-  function checkRun() {
-    var r = state.run;
-    if (view !== 'card' || r.choice !== null || runSel === null) return;
-    r.choice = runSel;
-    r.answered++;
-    if (r.choice === currentQuestion().answer) r.correct++;
-    runSel = null;
-    save();
-    renderCard();
-    $('dock-btn').focus({ preventScroll: true });
-    $('q-opts').querySelector('.is-correct').scrollIntoView({ block: 'nearest' });
-    answerFx($('q-opts'), r.choice === currentQuestion().answer);
-  }
-
-  function nextRun() {
-    var r = state.run;
-    if (view !== 'card' || r.choice === null) return;
-    r.pos++;
-    r.choice = null;
-    runSel = null;
-    save();
-    if (r.pos >= r.ids.length) {
-      replace({ v: 'done' });
-      $('again-btn').focus({ preventScroll: true });
-      return;
-    }
-    renderCard();
-    focusQuestion('q-text');
-  }
-
-  function renderDone() {
-    var r = state.run;
-    $('done-title').textContent = 'All ' + r.ids.length + ' ' + SET_LABEL[r.set] + ' questions answered';
-    $('done-pct').textContent = pct(r.correct, r.answered);
-    $('done-count').textContent = scoreLine(r.correct, r.answered) + ' this run';
-  }
-
   // Focus rings only while the keyboard is used to move around: a tap or click turns them off, Tab turns them back on.
   // The answer keys (A-D, 1-4, Enter, Right arrow) leave them as they are, so clicking an answer and then pressing a letter
   // draws no ring on the clicked answer.
@@ -2768,11 +2868,12 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
 
   var KEY_INDEX = { a: 0, b: 1, c: 2, d: 3, '1': 0, '2': 1, '3': 2, '4': 3 };
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && view === 'units') {
+    if (e.key === 'Escape' && (view === 'units' || view === 'exam')) {
       var row = closeBubble();
       if (row) row.focus();
       return;
     }
+    if (view === 'exam-play') { examKey(e); return; }
     if (e.key === 'Escape' && view === 'play') {
       closePops();
       return;
@@ -2784,16 +2885,16 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       }
       return;
     }
-    if ((view !== 'play' && view !== 'card') || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (view !== 'play' || e.metaKey || e.ctrlKey || e.altKey) return;
     var target = e.target;
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
-    var checked = view === 'play' ? ust.attempt.choice !== null : state.run.choice !== null;
+    var checked = ust.attempt.choice !== null;
     var idx = KEY_INDEX[e.key.toLowerCase()];
     if (!checked && idx !== undefined) {
       e.preventDefault();
-      if (view === 'play') selectPlay(idx); else selectRun(idx);
+      selectPlay(idx);
       // If an answer had the focus, the newly chosen one takes it, so any ring shows on the choice, not the old answer.
-      var opts = $(view === 'play' ? 'play-opts' : 'q-opts');
+      var opts = $('play-opts');
       var chosen = opts && opts.children[idx];
       if (chosen && opts.contains(document.activeElement) && chosen.classList.contains('is-selected')) chosen.focus({ preventScroll: true });
       return;
@@ -2811,6 +2912,29 @@ kbd { font-family: var(--font-mono); font-size: .9em; padding: 0 4px; border-rad
       $('dock-btn').click();
     }
   });
+
+  // In a mock exam: A-D or 1-4 choose, Right arrow or Enter moves on (after the last question, to the numbered squares),
+  // Left arrow goes back. Enter on any other button, such as an answer or a numbered square, works as usual.
+  function examKey(e) {
+    if (e.key === 'Escape') { closePops(); return; }
+    if (examReview || e.metaKey || e.ctrlKey || e.altKey) return;
+    var idx = KEY_INDEX[e.key.toLowerCase()];
+    if (idx !== undefined) {
+      e.preventDefault();
+      selectExam(idx);
+      var chosen = $('exam-opts').children[idx];
+      if (chosen && $('exam-opts').contains(document.activeElement)) chosen.focus({ preventScroll: true });
+      return;
+    }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); examBack(); return; }
+    if (e.key === 'ArrowRight') { e.preventDefault(); examNext(); return; }
+    if (e.key === 'Enter') {
+      var btn = e.target && e.target.closest ? e.target.closest('button') : null;
+      if (btn && btn.id !== 'dock-btn') return;
+      e.preventDefault();
+      $('dock-btn').click();
+    }
+  }
 
   // ---- Boot ----------------------------------------------------------------
 
